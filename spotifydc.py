@@ -80,108 +80,152 @@ def generate_random_string(length=16):
 
 # --- ADDING FLUSH=TRUE TO ALL PRINT STATEMENTS ---
 
-# Set up Chrome options
-chrome_options = Options()
-chrome_options.add_experimental_option("prefs", {
-    "profile.content_settings.exceptions.clipboard": {
-        "[*.]": {"setting": 1},
-    },
-    "profile.content_settings.clipboard": 1
-})
+def run_spotifydc():
+    # Set up Chrome options
+    chrome_options = Options()
+    chrome_options.add_experimental_option("prefs", {
+        "profile.content_settings.exceptions.clipboard": {
+            "[*.]": {"setting": 1},
+        },
+        "profile.content_settings.clipboard": 1
+    })
 
-try:
-    driver = webdriver.Chrome(options=chrome_options)
-except Exception as e:
-    print(f"ERROR: Could not start Chrome/ChromeDriver. Is it installed? Details: {e}", flush=True)
-    sys.exit(1)
+    try:
+        driver = webdriver.Chrome(options=chrome_options)
+    except Exception as e:
+        print(f"ERROR: Could not start Chrome/ChromeDriver. Is it installed? Details: {e}", flush=True)
+        sys.exit(1)
 
+    driver.get("https://accounts.spotify.com/en/login")
+    print("Please log in. Waiting for redirect...", flush=True)
 
-driver.get("https://accounts.spotify.com/en/login")
+    redirected = False
+    while not redirected:
+        try:
+            current_url = driver.current_url
+        except Exception:
+            print("Chrome window was closed. Restarting...", flush=True)
+            try:
+                driver.quit()
+            except Exception:
+                pass
+            return "restart"
+        if "open.spotify.com" in current_url:
+            print("Redirected to open.spotify.com", flush=True)
+            redirected = True
+        elif "spotify.com" in current_url and "/account/overview" in current_url:
+            print("Redirected to account overview. Forcing redirect to open.spotify.com...", flush=True)
+            driver.get("https://open.spotify.com/")
+            redirected = True
+        time.sleep(0.25)
 
-print("Please log in. Waiting for redirect...", flush=True)
-
-redirected = False
-while not redirected:
-    current_url = driver.current_url
-    if "open.spotify.com" in current_url:
-        print("Redirected to open.spotify.com", flush=True)
-        redirected = True
-    elif "spotify.com" in current_url and "/account/overview" in current_url:
-        print("Redirected to account overview. Forcing redirect to open.spotify.com...", flush=True)
-        driver.get("https://open.spotify.com/")
-        redirected = True
-    time.sleep(0.25)
-
-time.sleep(2)
-
-cookies = driver.get_cookies()
-sp_dc_cookie = next((cookie['value'] for cookie in cookies if cookie['name'] == 'sp_dc'), None)
-
-if sp_dc_cookie:
-    print(f"sp_dc cookie: {sp_dc_cookie}", flush=True)
-else:
-    print("sp_dc cookie not found.", flush=True)
-
-if HIDE_WINDOW:
-    driver.set_window_position(-2000, 0)
-
-# Optional: Focus the window. "Chrome" is a safer bet than "YASG".
-focus_window_by_title_substring("YASG")
-driver.set_window_size(1280, 2000)
-driver.get("https://developer.spotify.com/dashboard")
-print("Navigating to developer dashboard...", flush=True)
-time.sleep(2)
-
-try:
-    print("Attempting to create a new app...", flush=True)
-    create_app_button = driver.find_element(By.CLASS_NAME, "e-9934-visually-hidden")
-    driver.execute_script("arguments[0].click();", create_app_button)
-    time.sleep(1)
-
-    create_button = driver.find_element(By.CLASS_NAME, "encore-text-body-medium-bold.e-9934-button-primary.e-9934-button")
-    driver.execute_script("arguments[0].click();", create_button)
     time.sleep(2)
 
-    create_button = driver.find_element(By.CLASS_NAME, "encore-text-body-medium-bold.e-9934-button-primary.e-9934-button")
-    if create_button.text != "Save": 
+    try:
+        cookies = driver.get_cookies()
+    except Exception:
+        print("Chrome window was closed. Restarting...", flush=True)
+        try:
+            driver.quit()
+        except Exception:
+            pass
+        return "restart"
+
+    sp_dc_cookie = next((cookie['value'] for cookie in cookies if cookie['name'] == 'sp_dc'), None)
+
+    if sp_dc_cookie:
+        print(f"sp_dc cookie: {sp_dc_cookie}", flush=True)
+    else:
+        print("sp_dc cookie not found.", flush=True)
+
+    if HIDE_WINDOW:
+        try:
+            driver.set_window_position(-2000, 0)
+        except Exception:
+            print("Chrome window was closed. Restarting...", flush=True)
+            try:
+                driver.quit()
+            except Exception:
+                pass
+            return "restart"
+
+    focus_window_by_title_substring("YASG")
+    try:
+        driver.set_window_size(1280, 2000)
+        driver.get("https://developer.spotify.com/dashboard")
+    except Exception:
+        print("Chrome window was closed. Restarting...", flush=True)
+        try:
+            driver.quit()
+        except Exception:
+            pass
+        return "restart"
+    print("Navigating to developer dashboard...", flush=True)
+    time.sleep(2)
+
+    try:
+        print("Attempting to create a new app...", flush=True)
+        create_app_button = driver.find_element(By.CLASS_NAME, "e-9934-visually-hidden")
+        driver.execute_script("arguments[0].click();", create_app_button)
+        time.sleep(1)
+
+        create_button = driver.find_element(By.CLASS_NAME, "encore-text-body-medium-bold.e-9934-button-primary.e-9934-button")
         driver.execute_script("arguments[0].click();", create_button)
         time.sleep(2)
 
-    print("Filling out app creation form...", flush=True)
-    driver.find_element(By.ID, "name").send_keys(generate_random_string())
-    driver.find_element(By.ID, "description").send_keys(generate_random_string())
-    driver.find_element(By.ID, "newRedirectUri").send_keys("https://example.com/")
+        create_button = driver.find_element(By.CLASS_NAME, "encore-text-body-medium-bold.e-9934-button-primary.e-9934-button")
+        if create_button.text != "Save": 
+            driver.execute_script("arguments[0].click();", create_button)
+            time.sleep(2)
 
-    api_checkbox = driver.find_element(By.ID, "apis-used-1")
-    driver.execute_script("arguments[0].click();", api_checkbox)
+        print("Filling out app creation form...", flush=True)
+        driver.find_element(By.ID, "name").send_keys(generate_random_string())
+        driver.find_element(By.ID, "description").send_keys(generate_random_string())
+        driver.find_element(By.ID, "newRedirectUri").send_keys("https://example.com/")
 
-    terms_checkbox = driver.find_element(By.ID, "termsAccepted")
-    driver.execute_script("arguments[0].click();", terms_checkbox)
+        api_checkbox = driver.find_element(By.ID, "apis-used-1")
+        driver.execute_script("arguments[0].click();", api_checkbox)
 
-    time.sleep(0.5)
+        terms_checkbox = driver.find_element(By.ID, "termsAccepted")
+        driver.execute_script("arguments[0].click();", terms_checkbox)
 
-    final_create = driver.find_element(By.XPATH, "/html/body/div[1]/div/div/main/div/div/form/div[2]/button")
-    driver.execute_script("arguments[0].click();", final_create)
-    print("Submitting form...", flush=True)
-    time.sleep(4)
+        time.sleep(0.5)
 
-    print("Revealing client secret...", flush=True)
-    show_secret_btns = driver.find_element(By.XPATH, "/html/body/div[1]/div/div/main/div/div/div[4]/div/div/div[3]/button")
-    driver.execute_script("arguments[0].click();", show_secret_btns)
-    time.sleep(1)
+        final_create = driver.find_element(By.XPATH, "/html/body/div[1]/div/div/main/div/div/form/div[2]/button")
+        driver.execute_script("arguments[0].click();", final_create)
+        print("Submitting form...", flush=True)
+        time.sleep(4)
 
-    print("Copying client secret to clipboard...", flush=True)
-    copy_buttons = driver.find_element(By.XPATH, "/html/body/div[1]/div/div/main/div/div/div[4]/div/div/div[3]/div/button")
-    driver.execute_script("arguments[0].click();", copy_buttons)
-    time.sleep(1)
-    
-    client_secret = pyperclip.paste()
-    print(f"Client Secret: {client_secret}", flush=True)
+        print("Revealing client secret...", flush=True)
+        show_secret_btns = driver.find_element(By.XPATH, "/html/body/div[1]/div/div/main/div/div/div[4]/div/div/div[3]/button")
+        driver.execute_script("arguments[0].click();", show_secret_btns)
+        time.sleep(1)
 
-except Exception as e:
-    print(f"ERROR: An error occurred during Selenium automation: {e}", flush=True)
-    print("This may be due to a change in Spotify's website structure.", flush=True)
+        print("Copying client secret to clipboard...", flush=True)
+        copy_buttons = driver.find_element(By.XPATH, "/html/body/div[1]/div/div/main/div/div/div[4]/div/div/div[3]/div/button")
+        driver.execute_script("arguments[0].click();", copy_buttons)
+        time.sleep(1)
+        
+        client_secret = pyperclip.paste()
+        print(f"Client Secret: {client_secret}", flush=True)
 
-finally:
-    print("Script finished. Closing browser.", flush=True)
-    driver.quit()
+    except Exception as e:
+        print(f"ERROR: An error occurred during Selenium automation: {e}", flush=True)
+        print("This may be due to a change in Spotify's website structure.", flush=True)
+
+    finally:
+        print("Script finished. Closing browser.", flush=True)
+        try:
+            driver.quit()
+        except Exception:
+            pass
+    return True
+
+# Main loop to handle Chrome restarts
+while True:
+    result = run_spotifydc()
+    if result == "restart":
+        print("Restarting script due to Chrome window closure...", flush=True)
+        continue
+    else:
+        break
