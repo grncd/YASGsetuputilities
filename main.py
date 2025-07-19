@@ -79,11 +79,10 @@ def convert_wav_to_mp3(wav_file_path, mp3_file_path, ffmpeg_path="ffmpeg"):
         return False, f"Unexpected error during ffmpeg conversion of {os.path.basename(wav_file_path)}: {e}"
 
 def main():
-    if len(sys.argv) != 2:
-        print("Usage: python run_demucs.py <output_directory_path>")
-        sys.exit(1)
 
-    output_directory = os.path.abspath(sys.argv[1])
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    parent_dir = os.path.dirname(script_dir)
+    output_directory = os.path.join(parent_dir, "output","htdemucs")
     script_dir = os.path.dirname(os.path.abspath(__file__))
     input_folder = os.path.join(script_dir, "input")
 
