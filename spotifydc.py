@@ -96,7 +96,7 @@ def run_spotifydc():
         print(f"ERROR: Could not start Chrome/ChromeDriver. Is it installed? Details: {e}", flush=True)
         sys.exit(1)
 
-    driver.get("https://accounts.spotify.com/en/login")
+    driver.get("https://accounts.spotify.com/en/login?continue=https%3A%2F%2Fopen.spotify.com%2F")
     print("Please log in. Waiting for redirect...", flush=True)
 
     redirected = False
