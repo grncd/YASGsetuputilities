@@ -110,7 +110,7 @@ def run_spotifydc():
             except Exception:
                 pass
             return "restart"
-        if "open.spotify.com" in current_url:
+        if "open.spotify.com" in current_url and "accounts.spotify.com" not in current_url:
             print("Redirected to open.spotify.com", flush=True)
             redirected = True
         elif "spotify.com" in current_url and "/account/overview" in current_url:
