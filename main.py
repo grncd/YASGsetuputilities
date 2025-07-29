@@ -82,7 +82,7 @@ def main():
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
     parent_dir = os.path.dirname(script_dir)
-    output_directory = os.path.join(parent_dir, "output","htdemucs")
+    output_directory = os.path.join(parent_dir, "output")
     script_dir = os.path.dirname(os.path.abspath(__file__))
     input_folder = os.path.join(script_dir, "input")
 
@@ -197,7 +197,7 @@ def main():
     print("\n--- Starting WAV to MP3 conversion (320kbps) ---")
     
     # Path where Demucs is expected to place WAV files, according to user's script
-    demucs_output_wav_folder = os.path.join(output_directory)
+    demucs_output_wav_folder = os.path.join(output_directory,"htdemucs")
     wav_files_to_convert = glob.glob(os.path.join(demucs_output_wav_folder, "*.wav"))
     
     if not wav_files_to_convert:
