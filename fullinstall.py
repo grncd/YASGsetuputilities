@@ -126,7 +126,9 @@ def main():
     run_command(f'"{sys.executable}" -m pip install syrics', "pip install syrics")
 
     if args.install_demucs == 'true':
-        print_progress(85, "Installing demucs (this can take a while)")
+        print_progress(85, "Installing PyTorch for demucs (will take a LONG time)")
+        run_command(f'"{sys.executable}" -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128', "Install PyTorch with custom index URL")
+        print_progress(95, "Installing demucs")
         run_command(f'"{sys.executable}" -m pip install demucs', "pip install demucs")
     else:
         print("\n-> Skipping demucs installation as per argument.")
