@@ -101,6 +101,13 @@ def install_ffmpeg():
         if os.path.exists(installer_path):
             os.remove(installer_path)
 
+def install_demucs_package(progress_start=70):
+    """Installs demucs and its dependencies (PyTorch)."""
+    print_progress(progress_start, "Installing PyTorch for demucs (will take a LONG time)")
+    run_command(f'"{sys.executable}" -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128', "Install PyTorch with custom index URL")
+    print_progress(progress_start + 25, "Installing demucs")
+    run_command(f'"{sys.executable}" -m pip install demucs', "pip install demucs")
+
 def main():
     """Main function to parse arguments and run installation steps."""
 
@@ -111,7 +118,21 @@ def main():
         "install_demucs", choices=['true', 'false'],
         help="Specify 'true' to install demucs, or 'false' to skip it."
     )
+    parser.add_argument(
+        "only_demucs", nargs='?', default=None,
+        help="Optional: If set to 'true', ONLY demucs will be installed."
+    )
     args = parser.parse_args()
+
+    if args.only_demucs == 'true':
+        print_progress(0, "Starting demucs-only installation.")
+        install_demucs_package(progress_start=10)
+        print_progress(100, "Setup Complete!")
+        print("\n===================================")
+        print("Demucs installation completed successfully!")
+        print("===================================")
+        sys.exit(0)
+
 
     # --- SCRIPT EXECUTION START ---
     print_progress(0, "Starting Environment Setup")
@@ -126,10 +147,7 @@ def main():
     run_command(f'"{sys.executable}" -m pip install syrics', "pip install syrics")
 
     if args.install_demucs == 'true':
-        print_progress(85, "Installing PyTorch for demucs (will take a LONG time)")
-        run_command(f'"{sys.executable}" -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128', "Install PyTorch with custom index URL")
-        print_progress(95, "Installing demucs")
-        run_command(f'"{sys.executable}" -m pip install demucs', "pip install demucs")
+        install_demucs_package()
     else:
         print("\n-> Skipping demucs installation as per argument.")
 

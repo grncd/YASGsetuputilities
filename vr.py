@@ -156,7 +156,7 @@ chrome_options.add_experimental_option("prefs", prefs)
 
 # Initialize the Chrome driver.
 driver = webdriver.Chrome(options=chrome_options)
-driver.set_window_position(-2000,0)
+driver.set_window_position(-2000,-3000)
 # Open vocalremover.org
 focus_window_by_title_substring("YASG")
 driver.get("https://vocalremover.org/?patreon=1")
@@ -276,8 +276,14 @@ all_mp3s = set(f for f in os.listdir(download_dir) if f.lower().endswith('.mp3')
 new_mp3s = all_mp3s - existing_mp3s
 
 if new_mp3s:
-    newest = max(new_mp3s, key=lambda f: os.path.getmtime(os.path.join(download_dir, f)))
-    print("Processing track 1/1:", newest)
+    newest_file = max(new_mp3s, key=lambda f: os.path.getmtime(os.path.join(download_dir, f)))
+    original_filename = wav_files[0]
+    base_name, ext = os.path.splitext(original_filename)
+    new_filename = f"{base_name} [vocals]{ext}"
+    old_filepath = os.path.join(download_dir, newest_file)
+    new_filepath = os.path.join(download_dir, new_filename)
+    os.rename(old_filepath, new_filepath)
+    print("Processing track 1/1:", new_filename)
 else:
     print("Download completed, but no new .mp3 file was detected.")
 
