@@ -140,7 +140,7 @@ def run_spotifydc():
 
     if HIDE_WINDOW:
         try:
-            driver.set_window_position(-2000, 0)
+            driver.set_window_position(-2000, -3000)
         except Exception:
             print("Chrome window was closed. Restarting...", flush=True)
             try:
