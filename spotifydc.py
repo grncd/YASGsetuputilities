@@ -209,6 +209,14 @@ def run_spotifydc():
         client_secret = pyperclip.paste()
         print(f"Client Secret: {client_secret}", flush=True)
 
+        print("Copying client ID to clipboard...", flush=True)
+        copy_buttons = driver.find_element(By.XPATH, "/html/body/div[1]/div/div/main/div/div/div[4]/div/div/div[1]/div/button")
+        driver.execute_script("arguments[0].click();", copy_buttons)
+        time.sleep(1)
+
+        client_id = pyperclip.paste()
+        print(f"Client ID: {client_id}", flush=True)
+
     except Exception as e:
         print(f"ERROR: An error occurred during Selenium automation: {e}", flush=True)
         print("This may be due to a change in Spotify's website structure.", flush=True)
@@ -229,3 +237,4 @@ while True:
         continue
     else:
         break
+
