@@ -198,11 +198,11 @@ time.sleep(3)
 wait = WebDriverWait(driver, 120)
 
 # Progress: 0%
-print("Progress: 0%")
+print("Progress: 0%",flush=true)
 
 # After sending the file and waiting for "Uploading file…"
 wait.until(EC.visibility_of_element_located((By.XPATH, "//*[contains(text(), 'Uploading file')]")))
-print("Progress: 10%")
+print("Progress: 10%",flush=true)
 time.sleep(3)
 
 # Step 4/5: Now wait for either the AI message or "Loading..."
@@ -215,15 +215,15 @@ timeout = 120
 while time.time() - start < timeout:
     if driver.find_elements(*ai_msg_locator):
         print("AI algorithm message detected")
-        print("Progress: 20%")
+        print("Progress: 20%",flush=true)
         time.sleep(3)
         wait.until(EC.visibility_of_element_located(loading_locator))
         print("'Loading...' appeared after AI message")
-        print("Progress: 30%")
+        print("Progress: 30%",flush=true)
         break
     elif driver.find_elements(*loading_locator):
         print("Skipped AI message; 'Loading...' detected directly")
-        print("Progress: 30%")
+        print("Progress: 30%",flush=true)
         break
     time.sleep(1)
 else:
@@ -232,7 +232,7 @@ else:
 # In either case, wait for "Loading..." to finish
 wait.until(EC.invisibility_of_element_located(loading_locator))
 print("Processing complete")
-print("Progress: 60%")
+print("Progress: 60%",flush=true)
 time.sleep(0.2)
 
 # Step 6: Click the "Save" button.
@@ -240,7 +240,7 @@ try:
     save_button = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Save')]")))
     save_button.click()
     print("Clicked the 'Save' button")
-    print("Progress: 70%")
+    print("Progress: 70%",flush=true)
 except Exception as e:
     print("Could not click the 'Save' button:", e)
 time.sleep(0.5)
@@ -254,7 +254,7 @@ try:
     )))
     vocal_button.click()
     print("Clicked the 'Vocal' download option")
-    print("Progress: 80%")
+    print("Progress: 80%",flush=true)
 except Exception as e:
     print("Could not click the 'Vocal' button:", e)
 
@@ -267,10 +267,10 @@ while time.time() < timeout:
     # Print progress between 80% and 99% based on elapsed time
     elapsed = 120 - (timeout - time.time())
     percent = 80 + int(19 * (elapsed / 120))
-    print(f"Progress: {percent}%")
+    print(f"Progress: {percent}%",flush=true)
     time.sleep(3)
 
-print("Progress: 99%")
+print("Progress: 99%",flush=true)
 
 all_mp3s = set(f for f in os.listdir(download_dir) if f.lower().endswith('.mp3'))
 new_mp3s = all_mp3s - existing_mp3s
@@ -287,7 +287,7 @@ if new_mp3s:
 else:
     print("Download completed, but no new .mp3 file was detected.")
 
-print("Progress: 100%")
+print("Progress: 100%",flush=true)
 
 # --- Cleanup Input Folder ---
 for fname in os.listdir(input_dir):
