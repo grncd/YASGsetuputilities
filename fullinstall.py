@@ -141,7 +141,7 @@ def main():
     install_ffmpeg()
 
     print_progress(30, "Installing spotdl")
-    run_command(f'"{sys.executable}" -m pip install spotdl', "pip install spotdl")
+    run_command(f'"{sys.executable}" -m pip install spotdl==4.2.11', "pip install spotdl==4.2.11")
 
     print_progress(60, "Installing syrics")
     run_command(f'"{sys.executable}" -m pip install syrics', "pip install syrics")
