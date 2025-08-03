@@ -156,7 +156,7 @@ chrome_options.add_experimental_option("prefs", prefs)
 
 # Initialize the Chrome driver.
 driver = webdriver.Chrome(options=chrome_options)
-driver.set_window_position(-2000,-3000)
+driver.set_window_position(-2000,0)
 # Open vocalremover.org
 focus_window_by_title_substring("YASG")
 driver.get("https://vocalremover.org/?patreon=1")
