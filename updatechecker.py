@@ -11,7 +11,7 @@ LOCAL_HASH_PATH = os.path.join(os.path.dirname(LOCAL_UPDATE_PATH), "update.hash"
 def update_syrics():
     print("Updating syrics...")
     subprocess.run(
-        [sys.executable, "-m", "pip", "install", "--upgrade", "git+https://github.com/grncd/syrics.git"],
+        [sys.executable, "-m", "pip", "install", "--upgrade", "syrics"],
         check=True
     )
 
