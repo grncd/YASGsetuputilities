@@ -110,7 +110,6 @@ def main():
         "--two-stems=vocals",
         input_mp3_file,
         "-o", output_directory,
-        "-j", "4",
         "--filename", "{track} [{stem}].{ext}"
     ]
 
