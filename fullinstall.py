@@ -309,10 +309,10 @@ def main():
     install_ffmpeg() # This now handles path correctly
 
     print_progress(30, "Installing spotdl")
-    run_command("python -m pip install spotdl==4.2.11", "pip install spotdl==4.2.11")
+    run_command("python -m pip install spotdl==4.2.11", "Installing spotdl")
 
     print_progress(60, "Installing syrics")
-    run_command(f'"{sys.executable}" -m pip install git+https://github.com/grncd/syrics.git', "pip install git+https://github.com/grncd/syrics.git")
+    run_command("python -m pip install git+https://github.com/grncd/syrics.git", "pip install git+https://github.com/grncd/syrics.git")
 
     if args.install_demucs == 'true':
         install_demucs_package()
