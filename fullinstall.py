@@ -314,6 +314,9 @@ def main():
     print_progress(60, "Installing syrics")
     run_command("python -m pip install syrics", "pip install syrics")
 
+    print_progress(65, "Installing soundfile")
+    run_command("python -m pip install soundfile", "pip install soundfile")
+
     if args.install_demucs == 'true':
         install_demucs_package()
     else:
