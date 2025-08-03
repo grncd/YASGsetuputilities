@@ -98,8 +98,15 @@ def main():
     print(f"Found input MP3: {input_mp3_file}")
     print(f"Output directory: {output_directory}")
 
+    # Use demucs.exe from venv/Scripts in parent directory
+    demucs_exe_path = os.path.join(parent_dir, "venv", "Scripts", "demucs.exe")
+    if not os.path.isfile(demucs_exe_path):
+        print(f"Error: demucs.exe not found at {demucs_exe_path}")
+        print("Please ensure Demucs is installed in the venv.")
+        sys.exit(1)
+
     demucs_command = [
-        "demucs",
+        demucs_exe_path,
         "--two-stems=vocals",
         input_mp3_file,
         "-o", output_directory,
