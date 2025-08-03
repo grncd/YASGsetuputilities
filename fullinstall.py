@@ -70,6 +70,60 @@ def run_command(command, description):
         print(f"ERROR: Command not found. Make sure '{command[0]}' is in your system's PATH.")
         sys.exit(1)
 
+def add_ffmpeg_to_path():
+    """Adds FFmpeg bin directory to the user's PATH (registry) and current process if not already present."""
+    ffmpeg_bin = os.path.join(
+        os.environ["USERPROFILE"],
+        "AppData", "Local", "Programs", "FFmpeg", "bin"
+    )
+    # Check if the directory exists
+    if not os.path.isdir(ffmpeg_bin):
+        print(f"-> WARNING: FFmpeg bin directory not found at {ffmpeg_bin}. Skipping PATH update.")
+        return
+
+    # Get current user PATH from registry
+    import winreg
+    try:
+        with winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER,
+            r"Environment",
+            0,
+            winreg.KEY_READ
+        ) as key:
+            try:
+                current_path, _ = winreg.QueryValueEx(key, "Path")
+            except FileNotFoundError:
+                current_path = ""
+    except Exception as e:
+        print(f"-> WARNING: Could not read user PATH from registry: {e}")
+        current_path = ""
+
+    # Add ffmpeg_bin to registry PATH if not present
+    if ffmpeg_bin.lower() not in [p.lower() for p in current_path.split(";")]:
+        new_path = current_path + (";" if current_path else "") + ffmpeg_bin
+        try:
+            with winreg.OpenKey(
+                winreg.HKEY_CURRENT_USER,
+                r"Environment",
+                0,
+                winreg.KEY_SET_VALUE
+            ) as key:
+                winreg.SetValueEx(key, "Path", 0, winreg.REG_EXPAND_SZ, new_path)
+            print("-> SUCCESS: FFmpeg bin directory added to user PATH (registry).")
+            print("NOTE: You may need to restart your terminal or log out/in for PATH changes to take effect.")
+        except Exception as e:
+            print(f"-> WARNING: Failed to update user PATH in registry: {e}")
+    else:
+        print("-> INFO: FFmpeg bin already in user PATH (registry). Skipping PATH update.")
+
+    # Add ffmpeg_bin to current process PATH if not present
+    process_path = os.environ.get("PATH", "")
+    if ffmpeg_bin.lower() not in [p.lower() for p in process_path.split(";")]:
+        os.environ["PATH"] = process_path + (";" if process_path else "") + ffmpeg_bin
+        print("-> SUCCESS: FFmpeg bin directory added to current process PATH.")
+    else:
+        print("-> INFO: FFmpeg bin already in current process PATH.")
+
 def install_ffmpeg():
     """Checks for FFmpeg, then downloads and installs it if not found."""
     if is_ffmpeg_installed():
@@ -94,6 +148,7 @@ def install_ffmpeg():
     installer_path = os.path.join(temp_dir, FFMPEG_FILENAME)
 
     try:
+        print_progress(10, "Downloading FFmpeg")
         print(f"-> Downloading FFmpeg from {FFMPEG_URL}...")
         with requests.get(FFMPEG_URL, stream=True) as r:
             r.raise_for_status()
@@ -101,12 +156,13 @@ def install_ffmpeg():
                 for chunk in r.iter_content(chunk_size=8192): f.write(chunk)
         print("-> SUCCESS: Download complete.")
         
-        print("-> Installing FFmpeg (per-user, no admin required)...")
+        print_progress(20, "Installing FFmpeg (per-user, no admin required)")
         # Use /qn ALLUSERS=2 MSIINSTALLPERUSER=1 for per-user install
         msi_command = f'msiexec /i "{installer_path}" /qn ALLUSERS=2 MSIINSTALLPERUSER=1'
         subprocess.run(msi_command, check=True, shell=True)
         print("-> SUCCESS: FFmpeg installation finished.\n")
-        print("NOTE: A terminal restart may be needed for FFmpeg to be in the PATH.")
+        print_progress(25, "Adding FFmpeg to PATH")
+        add_ffmpeg_to_path()
     except (requests.exceptions.RequestException, subprocess.CalledProcessError) as e:
         print(f"ERROR: Failed during FFmpeg setup. Details: {e}")
         sys.exit(1)
