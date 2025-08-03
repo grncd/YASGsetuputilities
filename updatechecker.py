@@ -52,6 +52,84 @@ def maybe_run_update_script():
     else:
         print("No changes in update.py.")
 
+def get_datapath():
+    # Parent directory of the folder containing this script
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+def get_setup_utilities_path(datapath):
+    return os.path.join(datapath, "setuputilities")
+
+FILES_TO_UPDATE = [
+    # (url, local_path)
+    (
+        "https://raw.githubusercontent.com/grncd/YASGsetuputilities/refs/heads/main/pyinstall.bat",
+        lambda datapath: os.path.join(get_setup_utilities_path(datapath), "pyinstall.bat")
+    ),
+    (
+        "https://raw.githubusercontent.com/grncd/YASGsetuputilities/refs/heads/main/spotifydc.py",
+        lambda datapath: os.path.join(get_setup_utilities_path(datapath), "spotifydc.py")
+    ),
+    (
+        "https://raw.githubusercontent.com/grncd/YASGsetuputilities/refs/heads/main/fullinstall.py",
+        lambda datapath: os.path.join(get_setup_utilities_path(datapath), "fullinstall.py")
+    ),
+    (
+        "https://raw.githubusercontent.com/grncd/YASGsetuputilities/refs/heads/main/updatechecker.py",
+        lambda datapath: os.path.join(get_setup_utilities_path(datapath), "updatechecker.py")
+    ),
+    (
+        "https://raw.githubusercontent.com/grncd/YASGsetuputilities/refs/heads/main/getlyrics.bat",
+        lambda datapath: os.path.join(datapath, "getlyrics.bat")
+    ),
+    (
+        "https://raw.githubusercontent.com/grncd/YASGsetuputilities/refs/heads/main/downloadsong.bat",
+        lambda datapath: os.path.join(datapath, "downloadsong.bat")
+    ),
+    (
+        "https://raw.githubusercontent.com/grncd/YASGsetuputilities/refs/heads/main/main.py",
+        lambda datapath: os.path.join(datapath, "vocalremover", "main.py")
+    ),
+    (
+        "https://raw.githubusercontent.com/grncd/YASGsetuputilities/refs/heads/main/vr.py",
+        lambda datapath: os.path.join(datapath, "vocalremover", "vr.py")
+    ),
+]
+
+def download_and_update_file(url, local_path):
+    # Hash file will be local_path + ".hash"
+    hash_path = local_path + ".hash"
+    os.makedirs(os.path.dirname(local_path), exist_ok=True)
+    response = requests.get(url)
+    response.raise_for_status()
+    content = response.content
+    new_hash = file_hash(content)
+    if not os.path.exists(hash_path):
+        with open(local_path, "wb") as f:
+            f.write(content)
+        with open(hash_path, "w") as f:
+            f.write(new_hash)
+        print(f"Downloaded {os.path.basename(local_path)} (first time, not running).")
+        return
+    with open(hash_path, "r") as f:
+        old_hash = f.read().strip()
+    if new_hash != old_hash:
+        with open(local_path, "wb") as f:
+            f.write(content)
+        with open(hash_path, "w") as f:
+            f.write(new_hash)
+        print(f"{os.path.basename(local_path)} updated.")
+    else:
+        print(f"No changes in {os.path.basename(local_path)}.")
+
+def update_all_files():
+    datapath = get_datapath()
+    # Ensure vocalremover/input exists
+    os.makedirs(os.path.join(datapath, "vocalremover", "input"), exist_ok=True)
+    for url, path_func in FILES_TO_UPDATE:
+        local_path = path_func(datapath)
+        download_and_update_file(url, local_path)
+
 if __name__ == "__main__":
     update_syrics()
     maybe_run_update_script()
+    update_all_files()

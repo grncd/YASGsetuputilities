@@ -4,7 +4,7 @@ import sys
 import os
 import tempfile
 import ctypes
-import winreg
+import requests  # Import requests here since it's now always needed
 
 # NOTE: We do not import 'requests' here.
 # It will be imported dynamically after checking if it's installed.
@@ -278,6 +278,20 @@ def install_demucs_package(progress_start=70):
     print_progress(progress_start + 25, "Installing demucs")
     run_command('python -m pip install demucs', "pip install demucs")
 
+def download_file(url, path):
+    """Downloads a file from a URL to a specified path."""
+    print(f"-> Downloading: {url} to {path}")
+    try:
+        response = requests.get(url, stream=True)
+        response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
+        with open(path, 'wb') as file:
+            for chunk in response.iter_content(chunk_size=8192):
+                file.write(chunk)
+        print(f"-> SUCCESS: Downloaded {url} to {path}")
+    except requests.exceptions.RequestException as e:
+        print(f"ERROR: Failed to download {url} to {path}. Error: {e}")
+        sys.exit(1)
+
 def main():
     """Main function to parse arguments and run installation steps."""
     parser = argparse.ArgumentParser(
@@ -305,14 +319,46 @@ def main():
     # --- SCRIPT EXECUTION START ---
     print_progress(0, "Starting Environment Setup")
 
+    # Define paths based on script location
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    data_path = os.path.dirname(script_dir)  # Parent directory
+    setup_utilities_path = script_dir  # Directory where this script is located
+
+    # Download files
+    bat_url = "https://raw.githubusercontent.com/grncd/YASGsetuputilities/refs/heads/main/pyinstall.bat"
+    py_url = "https://raw.githubusercontent.com/grncd/YASGsetuputilities/refs/heads/main/spotifydc.py"
+    py2_url = "https://raw.githubusercontent.com/grncd/YASGsetuputilities/refs/heads/main/fullinstall.py"
+    py3_url = "https://raw.githubusercontent.com/grncd/YASGsetuputilities/refs/heads/main/updatechecker.py"
+    bat_path = os.path.join(setup_utilities_path, "pyinstall.bat")
+    py_path = os.path.join(setup_utilities_path, "spotifydc.py")
+    py2_path = os.path.join(setup_utilities_path, "fullinstall.py")
+    py3_path = os.path.join(setup_utilities_path, "updatechecker.py")
+
+    download_file(bat_url, bat_path)
+    download_file(py_url, py_path)
+    download_file(py2_url, py2_path)
+    download_file(py3_url, py3_path)
+
+    download_file("https://raw.githubusercontent.com/grncd/YASGsetuputilities/refs/heads/main/getlyrics.bat", os.path.join(data_path, "getlyrics.bat"))
+    download_file("https://raw.githubusercontent.com/grncd/YASGsetuputilities/refs/heads/main/downloadsong.bat", os.path.join(data_path, "downloadsong.bat"))
+
+    vocalremover_input_dir = os.path.join(data_path, "vocalremover", "input")
+    os.makedirs(vocalremover_input_dir, exist_ok=True)
+
+    download_file("https://raw.githubusercontent.com/grncd/YASGsetuputilities/refs/heads/main/main.py", os.path.join(data_path, "vocalremover", "main.py"))
+    download_file("https://raw.githubusercontent.com/grncd/YASGsetuputilities/refs/heads/main/vr.py", os.path.join(data_path, "vocalremover", "vr.py"))
+
+    # Install Git first
     install_git(progress_start=5)
-    install_ffmpeg() # This now handles path correctly
+
+    print_progress(10, "Checking/Downloading for FFmpeg")
+    install_ffmpeg()
 
     print_progress(30, "Installing spotdl")
-    run_command("python -m pip install spotdl==4.2.11", "pip install spotdl==4.2.11")
+    run_command(f'"{sys.executable}" -m pip install spotdl==4.2.11', "pip install spotdl==4.2.11")
 
     print_progress(60, "Installing syrics")
-    run_command(f'"{sys.executable}" -m pip install git+https://github.com/grncd/syrics.git', "pip install git+https://github.com/grncd/syrics.git")
+    run_command(f'"{sys.executable}" -m pip install syrics', "pip install syrics")
 
     if args.install_demucs == 'true':
         install_demucs_package()
