@@ -188,7 +188,7 @@ elif len(wav_files) > 1:
     print("More than one .wav file found in 'input'; picking the first.")
     
 file_path = os.path.abspath(os.path.join(input_dir, wav_files[0]))
-print("Uploading file:", file_path.encode("utf-8"))
+print("Uploading file:", file_path)
 
 # Send the file path to the file input element.
 file_input.send_keys(file_path)
