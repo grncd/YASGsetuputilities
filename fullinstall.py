@@ -43,6 +43,19 @@ def is_ffmpeg_installed():
     except (FileNotFoundError, subprocess.CalledProcessError):
         return False
 
+def is_git_installed():
+    """Checks if git is available in the system's PATH."""
+    try:
+        subprocess.run(
+            ["git", "--version"],
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+        return True
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        return False
+
 def run_command(command, description):
     """Runs a command in the shell and checks for errors."""
     print(f"-> Running: {description}...")
@@ -101,6 +114,28 @@ def install_ffmpeg():
         if os.path.exists(installer_path):
             os.remove(installer_path)
 
+def install_git(progress_start=0):
+    """Installs Git using winget if not already installed."""
+    print_progress(progress_start, "An admin popup will appear to install Git. Please allow it.")
+    if is_git_installed():
+        print("-> SUCCESS: Git is already installed. Skipping.\n")
+        return
+    try:
+        subprocess.run(
+            ["winget", "install", "--id", "Git.Git", "-e", "--source", "winget"],
+            creationflags=subprocess.CREATE_NO_WINDOW,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=True
+        )
+        print("-> SUCCESS: Git installation finished.\n")
+    except subprocess.CalledProcessError as e:
+        print("ERROR: Failed to install Git.")
+        sys.exit(1)
+    except FileNotFoundError:
+        print("ERROR: 'winget' not found. Please install winget and try again.")
+        sys.exit(1)
+
 def install_demucs_package(progress_start=70):
     """Installs demucs and its dependencies (PyTorch)."""
     print_progress(progress_start, "Installing PyTorch for demucs (will take a LONG time)")
@@ -136,6 +171,9 @@ def main():
 
     # --- SCRIPT EXECUTION START ---
     print_progress(0, "Starting Environment Setup")
+
+    # Install Git first
+    install_git(progress_start=5)
 
     print_progress(10, "Checking/Downloading for FFmpeg")
     install_ffmpeg()
