@@ -312,7 +312,7 @@ def main():
     run_command("python -m pip install spotdl==4.2.11", "pip install spotdl==4.2.11")
 
     print_progress(60, "Installing syrics")
-    run_command("python -m pip install syrics", "pip install syrics")
+    run_command(f'"{sys.executable}" -m pip install git+https://github.com/grncd/syrics.git', "pip install git+https://github.com/grncd/syrics.git")
 
     if args.install_demucs == 'true':
         install_demucs_package()
