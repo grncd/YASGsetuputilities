@@ -309,7 +309,7 @@ def main():
     install_ffmpeg() # This now handles path correctly
 
     print_progress(30, "Installing spotdl")
-    run_command("python -m pip install spotdl==4.2.11", "Installing spotdl")
+    run_command("python -m pip install spotdl", "Installing spotdl")
 
     print_progress(60, "Installing syrics")
     run_command("python -m pip install syrics", "pip install syrics")
