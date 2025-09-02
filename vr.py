@@ -19,48 +19,37 @@ def focus_window_by_title_substring(substring):
         try:
             import win32gui
             import win32con
-            import win32api # For GetLastError (though pywintypes.error usually has it)
+            import win32api
 
             def callback(hwnd, found_hwnds_list_ref):
-                # This inner try-except is crucial for robustness with EnumWindows
                 try:
                     if not win32gui.IsWindowVisible(hwnd) or not win32gui.IsWindowEnabled(hwnd):
-                        return True # Continue enumeration
+                        return True
 
                     window_title = win32gui.GetWindowText(hwnd)
-                    # Check if window_title is not None or empty before lowercasing
                     if window_title and substring.lower() in window_title.lower():
-                        # print(f"Found window: '{window_title}' with HWND: {hwnd}")
                         try:
                             win32gui.SetForegroundWindow(hwnd)
                         except win32gui.error as e:
-                            # Error 0 for SetForegroundWindow often means it's "not allowed"
-                            # to steal focus without user interaction or specific privileges.
-                            # The minimize/restore trick can sometimes bypass this.
-                            if e.winerror == 0 or e.winerror == 5: # 0: No error, 5: Access Denied
-                                # print(f"SetForegroundWindow failed initially (error {e.winerror}), trying workaround...")
+                            if e.winerror == 0 or e.winerror == 5:
                                 win32gui.ShowWindow(hwnd, win32con.SW_MINIMIZE)
-                                time.sleep(0.05) # Give OS a moment
+                                time.sleep(0.05)
                                 win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
-                                time.sleep(0.05) # Give OS a moment
-                                win32gui.SetForegroundWindow(hwnd) # Try again
+                                time.sleep(0.05)
+                                win32gui.SetForegroundWindow(hwnd)
                             else:
-                                # print(f"Could not set foreground for HWND {hwnd}: {e}")
-                                # Don't stop enumeration if we can't focus, maybe another match will work
-                                return True # Continue, maybe another window matches
+                                return True
                         
                         found_hwnds_list_ref.append(hwnd)
-                        return False # Stop enumeration, we found and (tried to) focus
-                except Exception as e_inner:
-                    # Log errors from processing a specific window but continue enumeration
-                    # print(f"Error processing HWND {hwnd}: {e_inner}. Last WinAPI Error: {win32api.GetLastError()}")
-                    pass # Important to continue enumeration
-                return True # Continue enumeration if no match or error for *this* window
+                        return False
+                except Exception:
+                    pass
+                return True
 
             hwnds = []
-            win32gui.EnumWindows(callback, hwnds) # Pass the list as the second arg (lParam)
+            win32gui.EnumWindows(callback, hwnds)
 
-            if hwnds: # hwnds list will contain the HWND if found and callback returned False
+            if hwnds:
                 print(f"Focused window containing '{substring}'.")
                 found = True
             else:
@@ -68,13 +57,12 @@ def focus_window_by_title_substring(substring):
 
         except ImportError:
             print("pywin32 library not found. Please install it: pip install pywin32")
-            return False # Explicitly return False on import error
-        except Exception as e_outer: # Catch other potential errors from pywin32 setup
+            return False
+        except Exception as e_outer:
             print(f"An unexpected error occurred with pywin32: {e_outer}")
             return False
 
     elif system == "Linux":
-        # ... (Linux code remains the same)
         try:
             subprocess.run(["wmctrl", "-m"], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             result = subprocess.run(["wmctrl", "-l"], capture_output=True, text=True, check=True)
@@ -95,8 +83,7 @@ def focus_window_by_title_substring(substring):
         except subprocess.CalledProcessError as e:
             print(f"Error using wmctrl: {e}")
 
-    elif system == "Darwin": # macOS
-        # ... (macOS code remains the same)
+    elif system == "Darwin":
         script = f'''
         tell application "System Events"
             set procs to processes whose background only is false
@@ -128,7 +115,7 @@ def focus_window_by_title_substring(substring):
     else:
         print(f"Unsupported operating system: {system}")
 
-    return found # Return the status
+    return found
 
 start_time = time.time()
 
@@ -138,14 +125,10 @@ parent_dir = os.path.dirname(script_dir)
 download_dir = os.path.join(parent_dir, "output","htdemucs")
 os.makedirs(download_dir, exist_ok=True)
 
-# Remove argument check and assignment
-# if len(sys.argv) != 2:
-#     print("Usage: python main.py <download_dir>")
-#     sys.exit(1)
-# download_dir = sys.argv[1]
 if not os.path.isdir(download_dir):
     print(f"Download directory does not exist: {download_dir}")
     sys.exit(1)
+
 chrome_options = Options()
 prefs = {
     "download.default_directory": download_dir,
@@ -154,17 +137,12 @@ prefs = {
 }
 chrome_options.add_experimental_option("prefs", prefs)
 
-# Initialize the Chrome driver.
 driver = webdriver.Chrome(options=chrome_options)
-driver.set_window_position(-2000,-1920)  # Move the window off-screen to avoid focus issues
-# Open vocalremover.org
+driver.set_window_position(-2000,-1920)
 focus_window_by_title_substring("YASG")
 driver.get("https://vocalremover.org/?patreon=1")
-time.sleep(3)  # Allow the page to load
+time.sleep(3)
 
-# Locate the file input element.
-# Often file upload buttons are hidden behind a styled button.
-# Here we use the file input directly.
 try:
     file_input = driver.find_element(By.CSS_SELECTOR, "input[type='file']")
 except Exception as e:
@@ -172,7 +150,6 @@ except Exception as e:
     driver.quit()
     exit(1)
 
-# Find the only .wav file in the "input" subfolder.
 input_dir = os.path.join(os.getcwd(), "input")
 if not os.path.isdir(input_dir):
     print(f"No input folder found at {input_dir}")
@@ -189,27 +166,20 @@ elif len(wav_files) > 1:
     
 file_path = os.path.abspath(os.path.join(input_dir, wav_files[0]))
 print("Uploading file:", file_path)
-
-# Send the file path to the file input element.
 file_input.send_keys(file_path)
 time.sleep(3)
 
-# Set up an explicit wait for various text changes.
 wait = WebDriverWait(driver, 120)
 
-# Progress: 0%
 print("Progress: 0%",flush=True)
 
-# After sending the file and waiting for "Uploading file…"
 wait.until(EC.visibility_of_element_located((By.XPATH, "//*[contains(text(), 'Uploading file')]")))
 print("Progress: 10%",flush=True)
 time.sleep(3)
 
-# Step 4/5: Now wait for either the AI message or "Loading..."
 ai_msg_locator    = (By.XPATH, "//*[contains(text(), 'Artificial intelligence algorithm now works')]")
 loading_locator   = (By.XPATH, "//*[contains(text(), 'Loading')]")
 
-# Wait up to 120s for one of them to appear
 start = time.time()
 timeout = 120
 while time.time() - start < timeout:
@@ -229,13 +199,11 @@ while time.time() - start < timeout:
 else:
     raise RuntimeError("Neither AI message nor 'Loading...' appeared in time")
 
-# In either case, wait for "Loading..." to finish
 wait.until(EC.invisibility_of_element_located(loading_locator))
 print("Processing complete")
 print("Progress: 60%",flush=True)
 time.sleep(0.2)
 
-# Step 6: Click the "Save" button.
 try:
     save_button = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Save')]")))
     save_button.click()
@@ -244,9 +212,7 @@ try:
 except Exception as e:
     print("Could not click the 'Save' button:", e)
 time.sleep(0.5)
-existing_mp3s = set(f for f in os.listdir(download_dir) if f.lower().endswith('.mp3'))
 
-# Alternative: match by the span text
 try:
     vocal_button = wait.until(EC.element_to_be_clickable((
         By.XPATH,
@@ -258,13 +224,10 @@ try:
 except Exception as e:
     print("Could not click the 'Vocal' button:", e)
 
-# Wait for the download to finish.
-timeout = time.time() + 120  # wait up to 2 minutes for the download to complete
+timeout = time.time() + 120
 while time.time() < timeout:
-    # Check for any file ending with .crdownload in the download directory.
     if not any(fname.endswith('.crdownload') for fname in os.listdir(download_dir)):
         break
-    # Print progress between 80% and 99% based on elapsed time
     elapsed = 120 - (timeout - time.time())
     percent = 80 + int(19 * (elapsed / 120))
     print(f"Progress: {percent}%",flush=True)
@@ -272,36 +235,30 @@ while time.time() < timeout:
 
 print("Progress: 99%",flush=True)
 
-all_mp3s = set(f for f in os.listdir(download_dir) if f.lower().endswith('.mp3'))
-new_mp3s = all_mp3s - existing_mp3s
-
-if new_mp3s:
-    newest_file = max(new_mp3s, key=lambda f: os.path.getmtime(os.path.join(download_dir, f)))
+mp3_files = [os.path.join(download_dir, f) for f in os.listdir(download_dir) if f.lower().endswith(".mp3")]
+if mp3_files:
+    newest_file = max(mp3_files, key=os.path.getmtime)
     original_filename = wav_files[0]
     base_name, ext = os.path.splitext(original_filename)
     new_filename = f"{base_name} [vocals]{ext}"
-    old_filepath = os.path.join(download_dir, newest_file)
     new_filepath = os.path.join(download_dir, new_filename)
-    os.rename(old_filepath, new_filepath)
+    os.rename(newest_file, new_filepath)
     print("Processing track 1/1:", new_filename)
 else:
-    print("Download completed, but no new .mp3 file was detected.")
+    print("Download completed, but no .mp3 file was detected.")
 
 print("Progress: 100%",flush=True)
 
-# --- Cleanup Input Folder ---
 for fname in os.listdir(input_dir):
     path = os.path.join(input_dir, fname)
     try:
         os.remove(path)
         print(f"Deleted")
-    except Exception as e:
+    except Exception:
         print(f"Could not delete")
 
 time.sleep(1)
 driver.quit()
-
-
 
 end_time = time.time()
 elapsed_time = end_time - start_time
