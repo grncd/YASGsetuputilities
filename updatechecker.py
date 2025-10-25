@@ -15,6 +15,13 @@ def update_syrics():
         check=True
     )
 
+def update_spotdl():
+    print("Updating spotdl...")
+    subprocess.run(
+        [sys.executable, "-m", "pip", "install", "--upgrade", "spotdl"],
+        check=True
+    )
+
 def download_update_script():
     print("Downloading update.py...")
     response = requests.get(UPDATE_URL)
@@ -131,5 +138,6 @@ def update_all_files():
 
 if __name__ == "__main__":
     update_syrics()
+    update_spotdl()
     maybe_run_update_script()
     update_all_files()
