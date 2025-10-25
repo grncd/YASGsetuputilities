@@ -3,6 +3,8 @@ import hashlib
 import os
 import requests
 import sys
+import time
+import random
 
 UPDATE_URL = "https://raw.githubusercontent.com/grncd/YASGsetuputilities/refs/heads/main/update.py"
 LOCAL_UPDATE_PATH = os.path.join(os.getenv("APPDATA") or ".", "syrics_update", "update.py")
@@ -133,6 +135,7 @@ def update_all_files():
     # Ensure vocalremover/input exists
     os.makedirs(os.path.join(datapath, "vocalremover", "input"), exist_ok=True)
     for url, path_func in FILES_TO_UPDATE:
+        time.sleep(random.randint(2,4))  # Be polite to the server
         local_path = path_func(datapath)
         download_and_update_file(url, local_path)
 
