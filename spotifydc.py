@@ -1,6 +1,4 @@
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
+import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
 import time
 import subprocess
@@ -72,7 +70,7 @@ def focus_window_by_title_substring(substring):
     return found
 
 # === Settings ===
-HIDE_WINDOW = True
+HIDE_WINDOW = False
 
 # === Utility functions ===
 def generate_random_string(length=16):
@@ -82,7 +80,7 @@ def generate_random_string(length=16):
 
 def run_spotifydc():
     # Set up Chrome options
-    chrome_options = Options()
+    chrome_options = uc.ChromeOptions()
     chrome_options.add_experimental_option("prefs", {
         "profile.content_settings.exceptions.clipboard": {
             "[*.]": {"setting": 1},
@@ -91,7 +89,7 @@ def run_spotifydc():
     })
 
     try:
-        driver = webdriver.Chrome(options=chrome_options)
+        driver = uc.Chrome(options=chrome_options)
     except Exception as e:
         print(f"ERROR: Could not start Chrome/ChromeDriver. Is it installed? Details: {e}", flush=True)
         sys.exit(1)
@@ -164,19 +162,54 @@ def run_spotifydc():
     time.sleep(2)
 
     try:
+        #//*[@id="accepted"]  checkbox
+        #/html/body/div[1]/div/div/form/div[2]/div[2]/button[1]
+
+        # Check for the checkbox with id "accepted"
+        try:
+            accepted_el = driver.find_element(By.XPATH, '//*[@id="accepted"]')
+            driver.execute_script("arguments[0].click();", accepted_el)
+            print("Clicked 'accepted' checkbox.", flush=True)
+        except Exception as e:
+            print(f"'accepted' checkbox not found or failed to click (this is OK): {e}", flush=True)
+
+        # Try to click the confirmation button
+        try:
+            confirm_btn = driver.find_element(By.XPATH, "/html/body/div[1]/div/div/form/div[2]/div[2]/button[1]")
+            driver.execute_script("arguments[0].click();", confirm_btn)
+            print("Clicked confirmation button.", flush=True)
+            time.sleep(3)
+        except Exception as e:
+            print(f"Confirmation button not found or failed to click (this is OK): {e}", flush=True)
+
+        # Check for interstitial button and wait for it to disappear
+        try:
+            interstitial_btn = driver.find_element(By.XPATH, "/html/body/div[1]/div/div/main/div/div/div[2]/span/div/button/span")
+            print("Interstitial button found, clicking it...", flush=True)
+            driver.execute_script("arguments[0].click();", interstitial_btn)
+
+            # Keep refreshing until the button is gone
+            while True:
+                time.sleep(2)
+                driver.refresh()
+                print("Refreshing page, waiting for interstitial to disappear...", flush=True)
+                time.sleep(3)  # Wait for page to fully load after refresh
+                try:
+                    # Try to find the button again
+                    driver.find_element(By.XPATH, "/html/body/div[1]/div/div/main/div/div/div[2]/span/div/button/span")
+                    # If we found it, continue the loop
+                    continue
+                except Exception:
+                    # Button is gone, break out of the loop
+                    print("Interstitial button is gone, proceeding...", flush=True)
+                    break
+        except Exception:
+            print("No interstitial button found, proceeding normally...", flush=True)
+
         print("Attempting to create a new app...", flush=True)
-        create_app_button = driver.find_element(By.CLASS_NAME, "e-9934-visually-hidden")
+        create_app_button = driver.find_element(By.XPATH, "/html/body/div[1]/div/div/main/div/div/div[1]/div/a/span")
         driver.execute_script("arguments[0].click();", create_app_button)
         time.sleep(1)
-
-        create_button = driver.find_element(By.CLASS_NAME, "encore-text-body-medium-bold.e-9934-button-primary.e-9934-button")
-        driver.execute_script("arguments[0].click();", create_button)
-        time.sleep(2)
-
-        create_button = driver.find_element(By.CLASS_NAME, "encore-text-body-medium-bold.e-9934-button-primary.e-9934-button")
-        if create_button.text != "Save": 
-            driver.execute_script("arguments[0].click();", create_button)
-            time.sleep(2)
 
         print("Filling out app creation form...", flush=True)
         driver.find_element(By.ID, "name").send_keys(generate_random_string())
@@ -197,7 +230,32 @@ def run_spotifydc():
         time.sleep(4)
 
         print("Revealing client secret...", flush=True)
-        show_secret_btns = driver.find_element(By.XPATH, "/html/body/div[1]/div/div/main/div/div/div[4]/div/div/div[3]/button")
+
+        # Retry logic for finding the show secret button (in case page hasn't fully loaded/created)
+        max_retries = 20
+        retry_count = 0
+        show_secret_btns = None
+
+        while retry_count < max_retries:
+            try:
+                show_secret_btns = driver.find_element(By.XPATH, "/html/body/div[1]/div/div/main/div/div/div[4]/div/div/div[3]/button")
+                break  # Found it, exit the loop
+            except Exception as e:
+                retry_count += 1
+
+                # Check if we're stuck on the create page
+                current_url = driver.current_url
+                if current_url == "https://developer.spotify.com/dashboard/create":
+                    print(f"ERROR: Still on create page after app creation attempt. App creation likely failed.", flush=True)
+                    raise Exception("App creation failed - stuck on create page")
+
+                print(f"Attempt {retry_count}/{max_retries}: Show secret button not found, reloading page...", flush=True)
+                driver.refresh()
+                time.sleep(2)
+
+        if show_secret_btns is None:
+            raise Exception(f"Failed to find show secret button after {max_retries} attempts")
+
         driver.execute_script("arguments[0].click();", show_secret_btns)
         time.sleep(1)
 
