@@ -179,7 +179,6 @@ elif len(wav_files) > 1:
 file_path = os.path.abspath(os.path.join(input_dir, wav_files[0]))
 print("Uploading file:", file_path)
 file_input.send_keys(file_path)
-time.sleep(3)
 
 wait = WebDriverWait(driver, 120)
 
@@ -187,7 +186,6 @@ print("Progress: 0%",flush=True)
 
 wait.until(EC.visibility_of_element_located((By.XPATH, "//*[contains(text(), 'Uploading file')]")))
 print("Progress: 10%",flush=True)
-time.sleep(3)
 
 ai_msg_locator    = (By.XPATH, "//*[contains(text(), 'Artificial intelligence algorithm now works')]")
 loading_locator   = (By.XPATH, "//*[contains(text(), 'Loading')]")
