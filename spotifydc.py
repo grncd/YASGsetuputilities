@@ -6,6 +6,7 @@ import platform
 import string
 import random
 import pyperclip
+import ctypes
 import sys # Import sys to explicitly flush stdout if needed
 
 # === Utility function to focus window ===
@@ -134,7 +135,12 @@ def run_spotifydc():
     if sp_dc_cookie:
         print(f"sp_dc cookie: {sp_dc_cookie}", flush=True)
     else:
-        print("sp_dc cookie not found.", flush=True)
+        print("sp_dc cookie not found. Closing Chrome and restarting...", flush=True)
+        try:
+            driver.quit()
+        except Exception:
+            pass
+        return "restart"
 
     if HIDE_WINDOW:
         try:
@@ -243,15 +249,45 @@ def run_spotifydc():
             except Exception as e:
                 retry_count += 1
 
-                # Check if we're stuck on the create page
+            # Check if we're stuck on the create page
+            try:
                 current_url = driver.current_url
-                if current_url == "https://developer.spotify.com/dashboard/create":
-                    print(f"ERROR: Still on create page after app creation attempt. App creation likely failed.", flush=True)
-                    raise Exception("App creation failed - stuck on create page")
+            except Exception:
+                print("Chrome window was closed while checking URL. Restarting...", flush=True)
+                try:
+                    driver.quit()
+                except Exception:
+                    pass
+                return "restart"
 
-                print(f"Attempt {retry_count}/{max_retries}: Show secret button not found, reloading page...", flush=True)
+            if current_url == "https://developer.spotify.com/dashboard/create":
+                print("ERROR: Still on create page after app creation attempt. App creation likely failed. Restarting...", flush=True)
+                try:
+                    driver.quit()
+                except Exception:
+                    pass
+                return "restart"
+
+            print(f"Attempt {retry_count}/{max_retries}: Show secret button not found, reloading page...", flush=True)
+            try:
                 driver.refresh()
-                time.sleep(2)
+            except Exception:
+                print("Chrome window was closed while refreshing. Restarting...", flush=True)
+                try:
+                    driver.quit()
+                except Exception:
+                    pass
+                return "restart"
+            time.sleep(2)
+
+        # If we exhausted retries, quit and signal a restart instead of raising
+        if show_secret_btns is None:
+            print(f"Failed to find show secret button after {max_retries} attempts. Restarting...", flush=True)
+            try:
+                driver.quit()
+            except Exception:
+                pass
+            return "restart"
 
         if show_secret_btns is None:
             raise Exception(f"Failed to find show secret button after {max_retries} attempts")
@@ -264,16 +300,32 @@ def run_spotifydc():
         driver.execute_script("arguments[0].click();", copy_buttons)
         time.sleep(1)
         
-        client_secret = pyperclip.paste()
+        client_secret = pyperclip.paste().strip()
         print(f"Client Secret: {client_secret}", flush=True)
+
+        if not client_secret or len(client_secret) != 16:
+            print(f"Client secret length is {len(client_secret) if client_secret is not None else 'None'} (expected 16). Restarting...", flush=True)
+            try:
+                driver.quit()
+            except Exception:
+                pass
+            return "restart"
 
         print("Copying client ID to clipboard...", flush=True)
         copy_buttons = driver.find_element(By.XPATH, "/html/body/div[1]/div/div/main/div/div/div[4]/div/div/div[1]/div/button")
         driver.execute_script("arguments[0].click();", copy_buttons)
         time.sleep(1)
 
-        client_id = pyperclip.paste()
+        client_id = pyperclip.paste().strip()
         print(f"Client ID: {client_id}", flush=True)
+
+        if not client_id or len(client_id) != 16:
+            print(f"Client ID length is {len(client_id) if client_id is not None else 'None'} (expected 16). Restarting...", flush=True)
+            try:
+                driver.quit()
+            except Exception:
+                pass
+            return "restart"
 
     except Exception as e:
         print(f"ERROR: An error occurred during Selenium automation: {e}", flush=True)
@@ -291,7 +343,15 @@ def run_spotifydc():
 while True:
     result = run_spotifydc()
     if result == "restart":
-        print("Restarting script due to Chrome window closure...", flush=True)
+        try:
+            system = platform.system()
+            if system == "Windows":
+                MB_OK = 0x0
+                MB_ICONERROR = 0x10
+                ctypes.windll.user32.MessageBoxW(0, "An unexpected error occured. Please try to login again by clicking OK. If you were asked to verify your email, you might need to wait a few more minutes before trying again.", "Error", MB_OK | MB_ICONERROR)
+        except Exception as e:
+            print(f"Failed to show error popup: {e}", flush=True)
+            print("Restarting script due to Chrome window closure...", flush=True)
         continue
     else:
         break
