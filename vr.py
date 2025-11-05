@@ -162,7 +162,19 @@ if not wav_files:
     driver.quit()
     exit(1)
 elif len(wav_files) > 1:
-    print("More than one .wav file found in 'input'; picking the first.")
+    # pick the most recently created .mp3 and remove the others
+    full_paths = [os.path.join(input_dir, f) for f in wav_files]
+    most_recent = max(full_paths, key=os.path.getctime)
+    chosen = os.path.basename(most_recent)
+    print(f"More than one .mp3 file found in 'input'; selecting most recently created: {chosen}")
+    for p in full_paths:
+        if p != most_recent:
+            try:
+                os.remove(p)
+                print(f"Deleted older file: {os.path.basename(p)}")
+            except Exception as e:
+                print(f"Could not delete {os.path.basename(p)}: {e}")
+    wav_files = [chosen]
     
 file_path = os.path.abspath(os.path.join(input_dir, wav_files[0]))
 print("Uploading file:", file_path)

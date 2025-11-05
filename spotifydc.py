@@ -71,7 +71,7 @@ def focus_window_by_title_substring(substring):
     return found
 
 # === Settings ===
-HIDE_WINDOW = False
+HIDE_WINDOW = True
 
 # === Utility functions ===
 def generate_random_string(length=16):
