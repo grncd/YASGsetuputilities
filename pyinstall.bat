@@ -81,5 +81,6 @@ pip install selenium
 pip install pywin32
 pip install pyperclip
 pip install undetected-chromedriver
+pip install setuptools==68.0.0
 echo [100%%] Setup completed successfully!
 echo Virtual environment is now active and ready to use.
