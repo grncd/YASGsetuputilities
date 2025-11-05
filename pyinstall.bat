@@ -1,19 +1,22 @@
 @echo off
 setlocal enabledelayedexpansion
 echo [0%%] Starting Python setup process...
-echo [5%%] Checking for Python installation...
-:: Check if Python is valid (not just a Microsoft Store alias)
-for /f "delims=" %%i in ('where python 2^>nul') do (
-    set "PYTHON_EXE=%%i"
-)
-if defined PYTHON_EXE (
-    for /f "delims=" %%v in ('%PYTHON_EXE% --version 2^>nul') do (
-        echo [10%%] Python is already installed.
+echo [5%%] Checking for Python 3.12 installation...
+
+:: Set the expected Python 3.12 path
+set "PYTHON_BASE=%LocalAppData%\Programs\Python\Python312"
+set "PYTHON_EXE=%PYTHON_BASE%\python.exe"
+
+:: Check if Python 3.12 is already installed
+if exist "%PYTHON_EXE%" (
+    for /f "delims=" %%v in ('"%PYTHON_EXE%" --version 2^>nul') do (
+        echo [10%%] Python 3.12 is already installed.
         echo %%v
         goto :create_venv
     )
 )
-echo [15%%] Python not found or is a Microsoft Store alias. Downloading Python 3.12.7...
+
+echo [15%%] Python 3.12 not found. Downloading Python 3.12.7...
 :: Set the download URL and filename
 set "PYTHON_URL=https://www.python.org/ftp/python/3.12.7/python-3.12.7-amd64.exe"
 set "PYTHON_INSTALLER=python-3.12.7-amd64.exe"
@@ -30,8 +33,6 @@ echo [45%%] Installing Python silently...
 "%PYTHON_INSTALLER%" /quiet InstallAllUsers=0 PrependPath=1 Include_test=0 Include_pip=1
 echo [50%%] Waiting for installation to complete...
 :: Wait until python.exe exists in the expected location
-set "PYTHON_BASE=%LocalAppData%\Programs\Python\Python312"
-set "PYTHON_EXE=%PYTHON_BASE%\python.exe"
 set "MAX_WAIT=30"
 set /a COUNT=0
 :wait_loop
