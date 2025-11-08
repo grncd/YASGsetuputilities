@@ -261,12 +261,12 @@ def run_spotifydc():
                 return "restart"
 
             if current_url == "https://developer.spotify.com/dashboard/create":
-                print("ERROR: Still on create page after app creation attempt. App creation likely failed. Restarting...", flush=True)
+                print("ERROR: Still on create page after app creation attempt. App creation likely failed. Quitting...", flush=True)
                 try:
                     driver.quit()
                 except Exception:
                     pass
-                return "restart"
+                return "quit"
 
             print(f"Attempt {retry_count}/{max_retries}: Show secret button not found, reloading page...", flush=True)
             try:
@@ -355,5 +355,6 @@ while True:
         continue
     else:
         break
+
 
 
