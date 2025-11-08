@@ -72,6 +72,7 @@ def focus_window_by_title_substring(substring):
 
 # === Settings ===
 HIDE_WINDOW = True
+errored = False
 
 # === Utility functions ===
 def generate_random_string(length=16):
@@ -262,6 +263,7 @@ def run_spotifydc():
 
             if current_url == "https://developer.spotify.com/dashboard/create":
                 print("ERROR: Still on create page after app creation attempt. App creation likely failed. Quitting...", flush=True)
+                errored = True
                 try:
                     driver.quit()
                 except Exception:
@@ -332,7 +334,8 @@ def run_spotifydc():
         print("This may be due to a change in Spotify's website structure.", flush=True)
 
     finally:
-        print("Script finished. Closing browser.", flush=True)
+        if not errored:
+            print("Script finished. Closing browser.", flush=True)
         try:
             driver.quit()
         except Exception:
@@ -355,6 +358,7 @@ while True:
         continue
     else:
         break
+
 
 
 
