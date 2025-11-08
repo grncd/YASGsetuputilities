@@ -274,9 +274,10 @@ def install_git(progress_start=0):
 def install_demucs_package(progress_start=70):
     """Installs demucs and its dependencies (PyTorch)."""
     print_progress(progress_start, "Installing PyTorch for demucs (this will take a LONG time)")
-    run_command('python -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128', "Install PyTorch with custom index URL")
+    run_command('python -m pip install torch torchvision torchaudio torchcodec --index-url https://download.pytorch.org/whl/cu128', "Install PyTorch with custom index URL")
     print_progress(progress_start + 25, "Installing demucs")
     run_command('python -m pip install demucs', "pip install demucs")
+    
 
 def main():
     """Main function to parse arguments and run installation steps."""
