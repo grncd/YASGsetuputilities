@@ -303,8 +303,8 @@ def run_spotifydc():
         client_secret = pyperclip.paste().strip()
         print(f"Client Secret: {client_secret}", flush=True)
 
-        if not client_secret or len(client_secret) != 16:
-            print(f"Client secret length is {len(client_secret) if client_secret is not None else 'None'} (expected 16). Restarting...", flush=True)
+        if not client_secret or len(client_secret) != 32 or len(client_id) != 16:
+            print(f"Client secret length is {len(client_secret) if client_secret is not None else 'None'} (expected 32). Restarting...", flush=True)
             try:
                 driver.quit()
             except Exception:
@@ -319,8 +319,8 @@ def run_spotifydc():
         client_id = pyperclip.paste().strip()
         print(f"Client ID: {client_id}", flush=True)
 
-        if not client_id or len(client_id) != 16:
-            print(f"Client ID length is {len(client_id) if client_id is not None else 'None'} (expected 16). Restarting...", flush=True)
+        if not client_id or len(client_id) != 32 or len(client_id) != 16:
+            print(f"Client ID length is {len(client_id) if client_id is not None else 'None'} (expected 32). Restarting...", flush=True)
             try:
                 driver.quit()
             except Exception:
@@ -355,4 +355,5 @@ while True:
         continue
     else:
         break
+
 
