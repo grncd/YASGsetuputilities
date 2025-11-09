@@ -86,7 +86,7 @@ if %errorlevel% neq 0 (
 echo [95%%] Virtual environment created successfully at: %PARENT_DIR%venv
 echo [96%%] Activating virtual environment...
 call "%PARENT_DIR%venv\Scripts\activate.bat"
-echo [97%%] Installing required packages...
+echo [97%%] Installing required packages... (takes a while)
 pip install selenium
 pip install pywin32
 pip install pyperclip
@@ -111,6 +111,7 @@ if !CHROME_FOUND!==0 (
 
 echo [100%%] Setup completed successfully!
 echo Virtual environment is now active and ready to use.
+
 
 
 
