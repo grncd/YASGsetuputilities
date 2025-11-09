@@ -255,6 +255,38 @@ def install_ffmpeg():
 import subprocess
 import sys
 import time
+import os
+
+def install_windows_appruntime():
+    """Installs the required Microsoft.WindowsAppRuntime dependency via PowerShell."""
+    print("-> ERROR: Missing 'Microsoft.WindowsAppRuntime'. Installing it now...")
+    
+    try:
+        # Download the Windows App Runtime package from the official source
+        subprocess.run(
+            ["powershell", "-Command", "Invoke-WebRequest -Uri 'https://aka.ms/windowsappruntime' -OutFile 'C:\\temp\\Microsoft.WindowsAppRuntime_1.8.0.0_x64.msixbundle'"],
+            check=True,
+            text=True,
+            capture_output=True
+        )
+
+        # Install the downloaded .msixbundle package
+        subprocess.run(
+            ["powershell", "-Command", "Add-AppxPackage -Path 'C:\\temp\\Microsoft.WindowsAppRuntime_1.8.0.0_x64.msixbundle'"],
+            check=True,
+            text=True,
+            capture_output=True
+        )
+        
+        print("-> SUCCESS: 'Microsoft.WindowsAppRuntime' installed successfully.")
+        return True
+    
+    except subprocess.CalledProcessError as e:
+        print(f"ERROR: Failed to install Microsoft.WindowsAppRuntime. {e.stderr}")
+        return False
+    except Exception as e:
+        print(f"Unexpected error during Windows App Runtime installation: {str(e)}")
+        return False
 
 def install_git(progress_start=0):
     """Installs Git using winget if not already installed, handles winget installation if needed."""
@@ -263,6 +295,7 @@ def install_git(progress_start=0):
         return
 
     print_progress(progress_start, "An admin popup may appear to install Git. Please allow it.")
+    
     try:
         # Run the winget command to install Git
         result = subprocess.run(
@@ -279,11 +312,32 @@ def install_git(progress_start=0):
     except subprocess.CalledProcessError as e:
         print("ERROR: Failed to install Git using winget.")
         
-        # If winget failed, try to install winget first
-        if 'winget' not in e.stderr:
-            print("Attempting to install winget...")
+        # If the error is related to missing 'Microsoft.WindowsAppRuntime', install it
+        if "0x80073CF3" in e.stderr:
+            print("ERROR: Dependency 'Microsoft.WindowsAppRuntime' is missing. Attempting to install it...")
+            if install_windows_appruntime():
+                # Retry Git installation after dependency is installed
+                print("Retrying Git installation...")
+                try:
+                    result = subprocess.run(
+                        ["winget", "install", "--id", "Git.Git", "-e", "--source", "winget"],
+                        check=True,
+                        text=True,
+                        capture_output=True
+                    )
+                    print("-> SUCCESS: Git installation finished after installing the runtime.\n")
+                    print("Winget Output:", result.stdout)
+                except subprocess.CalledProcessError as retry_err:
+                    print("ERROR: Failed to install Git after installing the dependency.")
+                    print("Retry Error:", retry_err.stderr)
+                    sys.exit(1)
+            else:
+                print("ERROR: Failed to install the required dependency. Git installation cannot proceed.")
+                sys.exit(1)
 
-            # Run PowerShell command to install winget
+        # Handle other common installation errors
+        elif 'winget' not in e.stderr:
+            print("Attempting to install winget...")
             try:
                 subprocess.run(
                     ["powershell", "Add-AppxPackage", "https://aka.ms/getwinget"],
@@ -332,6 +386,7 @@ def install_git(progress_start=0):
     except Exception as ex:
         print("An unexpected error occurred:", str(ex))
         sys.exit(1)
+
 
 
 def install_demucs_package(progress_start=70):
