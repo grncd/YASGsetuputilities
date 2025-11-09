@@ -26,8 +26,8 @@ if not exist "%PYTHON_INSTALLER%" (
 )
 echo [40%%] Download completed successfully.
 echo [45%%] Installing Python silently...
-:: Install Python silently
-"%PYTHON_INSTALLER%" /quiet InstallAllUsers=0 PrependPath=1 Include_test=0 Include_pip=1
+set "INSTALL_LOG=%TEMP%\python_install.log"
+"%PYTHON_INSTALLER%" /quiet InstallAllUsers=0 PrependPath=1 Include_test=0 Include_pip=1 /log "%INSTALL_LOG%" >nul 2>&1
 echo [50%%] Waiting for installation to complete...
 :: Wait until python.exe exists in the expected location
 set "MAX_WAIT=30"
@@ -98,3 +98,4 @@ if !CHROME_FOUND!==0 (
 
 echo [100%%] Setup completed successfully!
 echo Virtual environment is now active and ready to use.
+
