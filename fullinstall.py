@@ -295,7 +295,7 @@ def install_git(progress_start=0):
                 
                 # Wait a bit for winget to fully install (it may take some time)
                 print("Waiting for winget installation to complete...")
-                time.sleep(2)  # Adjust the wait time as needed
+                time.sleep(3.1)  # Adjust the wait time as needed
 
             except subprocess.CalledProcessError as install_err:
                 print("ERROR: Failed to install winget.")
