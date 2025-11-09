@@ -135,7 +135,7 @@ def update_all_files():
     # Ensure vocalremover/input exists
     os.makedirs(os.path.join(datapath, "vocalremover", "input"), exist_ok=True)
     for url, path_func in FILES_TO_UPDATE:
-        time.sleep(random.randint(2,4))  # Be polite to the server
+        time.sleep(random.randint(1,2))  # Be polite to the server
         local_path = path_func(datapath)
         download_and_update_file(url, local_path)
 
