@@ -28,20 +28,34 @@ echo [40%%] Download completed successfully.
 echo [45%%] Installing Python silently...
 "%PYTHON_INSTALLER%" /quiet InstallAllUsers=0 PrependPath=1 Include_test=0 Include_pip=1 TargetDir="%LocalAppData%\Programs\Python\Python312"
 echo [50%%] Waiting for installation to complete...
+
 :: Wait until python.exe exists in the expected location
-set "MAX_WAIT=30"
+set "MAX_WAIT=10"
 set /a COUNT=0
+set "RETRY=0"
+
 :wait_loop
 if exist "%PYTHON_EXE%" (
     goto :verify_python
 )
 timeout /t 1 >nul
 set /a COUNT+=1
+
 if !COUNT! geq !MAX_WAIT! (
-    echo [ERROR] Python installer timeout after !MAX_WAIT! seconds.
-    exit /b 1
+    if !RETRY! equ 0 (
+        echo [45%%] Trying to repair Python...
+        "%PYTHON_INSTALLER%" /quiet /repair InstallAllUsers=0 PrependPath=1 Include_test=0 Include_pip=1 TargetDir="%LocalAppData%\Programs\Python\Python312"
+        set /a RETRY=1
+        set /a COUNT=0
+        goto :wait_loop
+    ) else (
+        echo [45%%] Python could not be installed. Check logs.
+        exit /b 1
+    )
 )
+
 goto :wait_loop
+
 :verify_python
 echo [70%%] Python installed at: %PYTHON_EXE%
 echo [75%%] Cleaning up installer...
@@ -97,6 +111,7 @@ if !CHROME_FOUND!==0 (
 
 echo [100%%] Setup completed successfully!
 echo Virtual environment is now active and ready to use.
+
 
 
 
