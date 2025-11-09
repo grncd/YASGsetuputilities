@@ -5,6 +5,7 @@ import os
 import tempfile
 import ctypes
 import winreg
+import time
 
 # NOTE: We do not import 'requests' here.
 # It will be imported dynamically after checking if it's installed.
@@ -251,25 +252,87 @@ def install_ffmpeg():
         if os.path.exists(installer_path):
             os.remove(installer_path)
 
+import subprocess
+import sys
+import time
+
 def install_git(progress_start=0):
-    """Installs Git using winget if not already installed."""
+    """Installs Git using winget if not already installed, handles winget installation if needed."""
     if is_git_installed():
         print("-> SUCCESS: Git is already installed. Skipping.\n")
         return
+
     print_progress(progress_start, "An admin popup may appear to install Git. Please allow it.")
     try:
-        # Removed CREATE_NO_WINDOW to allow user to see the winget progress if they wish
-        subprocess.run(
+        # Run the winget command to install Git
+        result = subprocess.run(
             ["winget", "install", "--id", "Git.Git", "-e", "--source", "winget"],
-            check=True
+            check=True, 
+            text=True, 
+            capture_output=True
         )
+        
+        # If installation succeeds
         print("-> SUCCESS: Git installation finished.\n")
+        print("Winget Output:", result.stdout)
+
     except subprocess.CalledProcessError as e:
-        print("ERROR: Failed to install Git.")
-        sys.exit(1)
+        print("ERROR: Failed to install Git using winget.")
+        
+        # If winget failed, try to install winget first
+        if 'winget' not in e.stderr:
+            print("Attempting to install winget...")
+
+            # Run PowerShell command to install winget
+            try:
+                subprocess.run(
+                    ["powershell", "Add-AppxPackage", "https://aka.ms/getwinget"],
+                    check=True,
+                    text=True,
+                    capture_output=True
+                )
+                print("-> SUCCESS: winget installation finished.")
+                
+                # Wait a bit for winget to fully install (it may take some time)
+                print("Waiting for winget installation to complete...")
+                time.sleep(2)  # Adjust the wait time as needed
+
+            except subprocess.CalledProcessError as install_err:
+                print("ERROR: Failed to install winget.")
+                print("Install Error:", install_err.stderr)
+                sys.exit(1)
+            except Exception as install_ex:
+                print("Unexpected error during winget installation:", str(install_ex))
+                sys.exit(1)
+
+            # Retry Git installation after winget is installed
+            print("Retrying Git installation...")
+            try:
+                result = subprocess.run(
+                    ["winget", "install", "--id", "Git.Git", "-e", "--source", "winget"],
+                    check=True,
+                    text=True,
+                    capture_output=True
+                )
+                print("-> SUCCESS: Git installation finished after winget install.\n")
+                print("Winget Output:", result.stdout)
+            except subprocess.CalledProcessError as retry_err:
+                print("ERROR: Failed to install Git after winget installation.")
+                print("Retry Error:", retry_err.stderr)
+                sys.exit(1)
+
+        else:
+            # If 'winget' was the cause of the failure (not found)
+            print("ERROR: 'winget' not found. Please install winget manually and try again.")
+            sys.exit(1)
+
     except FileNotFoundError:
         print("ERROR: 'winget' not found. Please install winget (App Installer) from the Microsoft Store and try again.")
         sys.exit(1)
+    except Exception as ex:
+        print("An unexpected error occurred:", str(ex))
+        sys.exit(1)
+
 
 def install_demucs_package(progress_start=70):
     """Installs demucs and its dependencies (PyTorch)."""
