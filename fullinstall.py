@@ -32,17 +32,17 @@ def is_admin():
         return False
 
 def is_ffmpeg_installed():
-    """Checks if ffmpeg is available in the system's PATH."""
-    try:
-        subprocess.run(
-            ["ffmpeg", "-version"],
-            check=True,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
-        )
-        return True
-    except (FileNotFoundError, subprocess.CalledProcessError):
-        return False
+    """Checks if ffmpeg is available in either of the common installation paths."""
+    ffmpeg_paths = [
+        r"C:\Program Files\FFmpeg\bin\ffmpeg.exe",
+        os.path.expandvars(r"C:\Users\%USERNAME%\AppData\Local\Programs\FFmpeg\bin\ffmpeg.exe")
+    ]
+    
+    for path in ffmpeg_paths:
+        if os.path.exists(path):
+            return True
+    
+    return False
 
 def is_git_installed():
     """Checks if git is available in the system's PATH."""
