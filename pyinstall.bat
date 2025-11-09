@@ -2,11 +2,9 @@
 setlocal enabledelayedexpansion
 echo [0%%] Starting Python setup process...
 echo [5%%] Checking for Python 3.12 installation...
-
 :: Set the expected Python 3.12 path
 set "PYTHON_BASE=%LocalAppData%\Programs\Python\Python312"
 set "PYTHON_EXE=%PYTHON_BASE%\python.exe"
-
 :: Check if Python 3.12 is already installed
 if exist "%PYTHON_EXE%" (
     for /f "delims=" %%v in ('"%PYTHON_EXE%" --version 2^>nul') do (
@@ -15,7 +13,6 @@ if exist "%PYTHON_EXE%" (
         goto :create_venv
     )
 )
-
 echo [15%%] Python 3.12 not found. Downloading Python 3.12.7...
 :: Set the download URL and filename
 set "PYTHON_URL=https://www.python.org/ftp/python/3.12.7/python-3.12.7-amd64.exe"
@@ -82,5 +79,22 @@ pip install pywin32
 pip install pyperclip
 pip install undetected-chromedriver
 pip install setuptools==68.0.0
+
+:: Check for Google Chrome installation
+echo.
+echo Checking for Google Chrome installation...
+set "CHROME_FOUND=0"
+
+if exist "C:\Program Files\Google\Chrome\Application\chrome.exe" set "CHROME_FOUND=1"
+if exist "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" set "CHROME_FOUND=1"
+if exist "%LocalAppData%\Google\Chrome\Application\chrome.exe" set "CHROME_FOUND=1"
+
+if !CHROME_FOUND!==0 (
+    echo [WARNING] Google Chrome is not installed!
+    powershell -Command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.MessageBox]::Show('WARNING: Google Chrome is not installed.'+[Environment]::NewLine+[Environment]::NewLine+'The next step of the setup WILL require you to have Google Chrome installed.'+[Environment]::NewLine+[Environment]::NewLine+'Please install Google Chrome from:'+[Environment]::NewLine+'https://www.google.com/chrome/'+[Environment]::NewLine+'and proceed with the next step of the setup.', 'Chrome Not Found', 'OK', 'Warning')"
+) else (
+    echo Google Chrome detected.
+)
+
 echo [100%%] Setup completed successfully!
 echo Virtual environment is now active and ready to use.
