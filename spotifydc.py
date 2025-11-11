@@ -346,18 +346,10 @@ def run_spotifydc():
 while True:
     result = run_spotifydc()
     if result == "restart":
-        try:
-            system = platform.system()
-            if system == "Windows":
-                MB_OK = 0x0
-                MB_ICONERROR = 0x10
-                ctypes.windll.user32.MessageBoxW(0, "An unexpected error occured. Please try to login again by clicking OK. If you were asked to verify your email, you might need to wait a few more minutes before trying again.", "Error", MB_OK | MB_ICONERROR)
-        except Exception as e:
-            print(f"Failed to show error popup: {e}", flush=True)
-            print("Restarting script due to Chrome window closure...", flush=True)
-        continue
+        print("Restarting script due to Chrome window closure...", flush=True)
     else:
         break
+
 
 
 
