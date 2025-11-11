@@ -294,7 +294,7 @@ def install_git(progress_start=0):
         print("-> SUCCESS: Git is already installed. Skipping.\n")
         return
 
-    print_progress(progress_start, "An admin popup may appear to install Git. Please allow it.")
+    print_progress(progress_start, "Installing git (be patient, an admin popup might appear)")
     
     try:
         # Run the winget command to install Git
