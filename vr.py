@@ -1,6 +1,7 @@
 import os
 import time
 import sys
+import io
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -10,6 +11,27 @@ from selenium.webdriver.support import expected_conditions as EC
 import platform
 import subprocess
 import time
+
+# Fix console encoding for Unicode support (Russian characters, etc.)
+if sys.platform == 'win32':
+    try:
+        # Force UTF-8 encoding for stdout and stderr
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+        sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+    except Exception:
+        pass
+
+def safe_print(message):
+    """Safely print messages with potential Unicode characters"""
+    try:
+        print(message, flush=True)
+    except UnicodeEncodeError:
+        # Fallback: encode with replacement for problematic characters
+        try:
+            safe_message = message.encode('ascii', errors='replace').decode('ascii')
+            print(safe_message, flush=True)
+        except Exception:
+            print("[Message with special characters]", flush=True)
 
 def focus_window_by_title_substring(substring):
     system = platform.system()
@@ -166,18 +188,18 @@ elif len(wav_files) > 1:
     full_paths = [os.path.join(input_dir, f) for f in wav_files]
     most_recent = max(full_paths, key=os.path.getctime)
     chosen = os.path.basename(most_recent)
-    print(f"More than one .mp3 file found in 'input'; selecting most recently created: {chosen}")
+    safe_print(f"More than one .mp3 file found in 'input'; selecting most recently created: {chosen}")
     for p in full_paths:
         if p != most_recent:
             try:
                 os.remove(p)
-                print(f"Deleted older file: {os.path.basename(p)}")
+                safe_print(f"Deleted older file: {os.path.basename(p)}")
             except Exception as e:
-                print(f"Could not delete {os.path.basename(p)}: {e}")
+                safe_print(f"Could not delete {os.path.basename(p)}: {e}")
     wav_files = [chosen]
     
 file_path = os.path.abspath(os.path.join(input_dir, wav_files[0]))
-print("Uploading file:", file_path)
+safe_print(f"Uploading file: {file_path}")
 file_input.send_keys(file_path)
 
 wait = WebDriverWait(driver, 120)
@@ -253,7 +275,7 @@ if mp3_files:
     new_filename = f"{base_name} [vocals]{ext}"
     new_filepath = os.path.join(download_dir, new_filename)
     os.rename(newest_file, new_filepath)
-    print("Processing track 1/1:", new_filename)
+    safe_print(f"Processing track 1/1: {new_filename}")
 else:
     print("Download completed, but no .mp3 file was detected.")
 
