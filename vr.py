@@ -256,6 +256,9 @@ try:
 except Exception as e:
     print("Could not click the 'Vocal' button:", e)
 
+# Take snapshot of existing files BEFORE download completes
+existing_files = set(os.listdir(download_dir))
+
 timeout = time.time() + 120
 while time.time() < timeout:
     if not any(fname.endswith('.crdownload') for fname in os.listdir(download_dir)):
@@ -267,17 +270,25 @@ while time.time() < timeout:
 
 print("Progress: 99%",flush=True)
 
-mp3_files = [os.path.join(download_dir, f) for f in os.listdir(download_dir) if f.lower().endswith(".mp3")]
-if mp3_files:
-    newest_file = max(mp3_files, key=os.path.getmtime)
+# Compare current files with snapshot to find ONLY the newly downloaded file
+current_files = set(os.listdir(download_dir))
+new_files = current_files - existing_files
+new_mp3_files = [f for f in new_files if f.lower().endswith(".mp3")]
+
+if new_mp3_files:
+    # Should only be one new file, but take the first one just in case
+    downloaded_file = new_mp3_files[0]
+    downloaded_filepath = os.path.join(download_dir, downloaded_file)
+
     original_filename = wav_files[0]
     base_name, ext = os.path.splitext(original_filename)
     new_filename = f"{base_name} [vocals]{ext}"
     new_filepath = os.path.join(download_dir, new_filename)
-    os.rename(newest_file, new_filepath)
+
+    os.rename(downloaded_filepath, new_filepath)
     safe_print(f"Processing track 1/1: {new_filename}")
 else:
-    print("Download completed, but no .mp3 file was detected.")
+    print("Download completed, but no new .mp3 file was detected.")
 
 print("Progress: 100%",flush=True)
 
