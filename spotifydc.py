@@ -73,7 +73,7 @@ def focus_window_by_title_substring(substring):
     return found
 
 # === Settings ===
-HIDE_WINDOW = True
+HIDE_WINDOW = True if platform.system() == "Windows" else False
 errored = False
 
 # === Utility functions ===
