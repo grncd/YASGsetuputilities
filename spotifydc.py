@@ -687,20 +687,52 @@ def run_spotifydc():
                         csrf_token = fresh_csrf
 
                     # Show Windows popup notification
-                    try:
-                        import ctypes
-                        # MB_ICONWARNING = 0x30, MB_TOPMOST = 0x40000, MB_SETFOREGROUND = 0x10000
-                        MB_ICONWARNING = 0x30
-                        MB_TOPMOST = 0x40000
-                        MB_SETFOREGROUND = 0x10000
-                        ctypes.windll.user32.MessageBoxW(
-                            0,
-                            "EMAIL VERIFICATION REQUIRED!\n\nA verification email is being sent to your inbox.\nPlease check your email and click the verification link.\n\nThe script will continue automatically once verified.",
-                            "Spotify Developer - Email Verification",
-                            MB_ICONWARNING | MB_TOPMOST | MB_SETFOREGROUND
-                        )
-                    except Exception as e:
-                        print(f"Could not show popup notification: {e}", flush=True)
+                    if platform.system() == "Windows":
+                        try:
+                            import ctypes
+                            # MB_ICONWARNING = 0x30, MB_TOPMOST = 0x40000, MB_SETFOREGROUND = 0x10000
+                            MB_ICONWARNING = 0x30
+                            MB_TOPMOST = 0x40000
+                            MB_SETFOREGROUND = 0x10000
+                            ctypes.windll.user32.MessageBoxW(
+                                0,
+                                "EMAIL VERIFICATION REQUIRED!\n\nA verification email is being sent to your inbox.\nPlease check your email and click the verification link.\n\nThe script will continue automatically once verified.",
+                                "Spotify Developer - Email Verification",
+                                MB_ICONWARNING | MB_TOPMOST | MB_SETFOREGROUND
+                            )
+                        except Exception as e:
+                            print(f"Could not show popup notification: {e}", flush=True)
+                    else:
+                        msg = "EMAIL VERIFICATION REQUIRED!\n\nA verification email is being sent to your inbox.\nPlease check your email and click the verification link.\n\nThe script will continue automatically once verified."
+                        title = "Spotify Developer - Email Verification"
+                        
+                        # Try Zenity (GNOME/standard)
+                        import shutil
+                        if shutil.which("zenity"):
+                            try:
+                                subprocess.run(["zenity", "--info", "--title", title, "--text", msg], check=False)
+                            except: pass
+                        # Try KDialog (KDE)
+                        elif shutil.which("kdialog"):
+                            try:
+                                subprocess.run(["kdialog", "--msgbox", msg, "--title", title], check=False)
+                            except: pass
+                        # Try xmessage (X11)
+                        elif shutil.which("xmessage"):
+                            try:
+                                subprocess.run(["xmessage", "-center", "-title", title, msg], check=False)
+                            except: pass
+                        # Try Tkinter (Python)
+                        else:
+                            try:
+                                import tkinter
+                                from tkinter import messagebox
+                                root = tkinter.Tk()
+                                root.withdraw()
+                                messagebox.showinfo(title, msg)
+                                root.destroy()
+                            except: 
+                                print("NOTIFICATION: EMAIL VERIFICATION REQUIRED! Check your inbox.", flush=True)
 
                     # Send verification email
                     print("Sending verification email...", flush=True)

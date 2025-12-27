@@ -5,9 +5,19 @@ import requests
 import sys
 import time
 import random
+import platform
+
+# Determine platform and base path
+is_windows = platform.system() == "Windows"
+
+if is_windows:
+    base_path = os.getenv("APPDATA") or "."
+else:
+    base_path = os.environ.get("XDG_DATA_HOME", os.path.join(os.path.expanduser("~"), ".local", "share"))
+    base_path = os.path.join(base_path, "YASG")
 
 UPDATE_URL = "https://raw.githubusercontent.com/grncd/YASGsetuputilities/refs/heads/main/update.py"
-LOCAL_UPDATE_PATH = os.path.join(os.getenv("APPDATA") or ".", "syrics_update", "update.py")
+LOCAL_UPDATE_PATH = os.path.join(base_path, "syrics_update", "update.py")
 LOCAL_HASH_PATH = os.path.join(os.path.dirname(LOCAL_UPDATE_PATH), "update.hash")
 
 def update_syrics():
@@ -36,30 +46,33 @@ def file_hash(content):
 def maybe_run_update_script():
     os.makedirs(os.path.dirname(LOCAL_UPDATE_PATH), exist_ok=True)
 
-    new_content = download_update_script()
-    new_hash = file_hash(new_content)
+    try:
+        new_content = download_update_script()
+        new_hash = file_hash(new_content)
 
-    if not os.path.exists(LOCAL_HASH_PATH):
-        # First download: store file and hash, but don't run
-        print("First-time download. Storing update.py without executing.")
-        with open(LOCAL_UPDATE_PATH, "wb") as f:
-            f.write(new_content)
-        with open(LOCAL_HASH_PATH, "w") as f:
-            f.write(new_hash)
-        return
+        if not os.path.exists(LOCAL_HASH_PATH):
+            # First download: store file and hash, but don't run
+            print("First-time download. Storing update.py without executing.")
+            with open(LOCAL_UPDATE_PATH, "wb") as f:
+                f.write(new_content)
+            with open(LOCAL_HASH_PATH, "w") as f:
+                f.write(new_hash)
+            return
 
-    with open(LOCAL_HASH_PATH, "r") as f:
-        old_hash = f.read().strip()
+        with open(LOCAL_HASH_PATH, "r") as f:
+            old_hash = f.read().strip()
 
-    if new_hash != old_hash:
-        print("update.py has changed. Running new update.py...")
-        with open(LOCAL_UPDATE_PATH, "wb") as f:
-            f.write(new_content)
-        with open(LOCAL_HASH_PATH, "w") as f:
-            f.write(new_hash)
-        subprocess.run([sys.executable, LOCAL_UPDATE_PATH], check=True)
-    else:
-        print("No changes in update.py.")
+        if new_hash != old_hash:
+            print("update.py has changed. Running new update.py...")
+            with open(LOCAL_UPDATE_PATH, "wb") as f:
+                f.write(new_content)
+            with open(LOCAL_HASH_PATH, "w") as f:
+                f.write(new_hash)
+            subprocess.run([sys.executable, LOCAL_UPDATE_PATH], check=True)
+        else:
+            print("No changes in update.py.")
+    except Exception as e:
+        print(f"Failed to check/update update script: {e}")
 
 def get_datapath():
     # Parent directory of the folder containing this script
@@ -68,11 +81,13 @@ def get_datapath():
 def get_setup_utilities_path(datapath):
     return os.path.join(datapath, "setuputilities")
 
+script_ext = ".bat" if is_windows else ".sh"
+
 FILES_TO_UPDATE = [
     # (url, local_path)
     (
-        "https://raw.githubusercontent.com/grncd/YASGsetuputilities/refs/heads/main/pyinstall.bat",
-        lambda datapath: os.path.join(get_setup_utilities_path(datapath), "pyinstall.bat")
+        f"https://raw.githubusercontent.com/grncd/YASGsetuputilities/refs/heads/main/pyinstall{script_ext}",
+        lambda datapath: os.path.join(get_setup_utilities_path(datapath), f"pyinstall{script_ext}")
     ),
     (
         "https://raw.githubusercontent.com/grncd/YASGsetuputilities/refs/heads/main/spotifydc.py",
@@ -87,12 +102,12 @@ FILES_TO_UPDATE = [
         lambda datapath: os.path.join(get_setup_utilities_path(datapath), "updatechecker.py")
     ),
     (
-        "https://raw.githubusercontent.com/grncd/YASGsetuputilities/refs/heads/main/getlyrics.bat",
-        lambda datapath: os.path.join(datapath, "getlyrics.bat")
+        f"https://raw.githubusercontent.com/grncd/YASGsetuputilities/refs/heads/main/getlyrics{script_ext}",
+        lambda datapath: os.path.join(datapath, f"getlyrics{script_ext}")
     ),
     (
-        "https://raw.githubusercontent.com/grncd/YASGsetuputilities/refs/heads/main/downloadsong.bat",
-        lambda datapath: os.path.join(datapath, "downloadsong.bat")
+        f"https://raw.githubusercontent.com/grncd/YASGsetuputilities/refs/heads/main/downloadsong{script_ext}",
+        lambda datapath: os.path.join(datapath, f"downloadsong{script_ext}")
     ),
     (
         "https://raw.githubusercontent.com/grncd/YASGsetuputilities/refs/heads/main/main.py",
@@ -108,27 +123,30 @@ def download_and_update_file(url, local_path):
     # Hash file will be local_path + ".hash"
     hash_path = local_path + ".hash"
     os.makedirs(os.path.dirname(local_path), exist_ok=True)
-    response = requests.get(url)
-    response.raise_for_status()
-    content = response.content
-    new_hash = file_hash(content)
-    if not os.path.exists(hash_path):
-        with open(local_path, "wb") as f:
-            f.write(content)
-        with open(hash_path, "w") as f:
-            f.write(new_hash)
-        print(f"Downloaded {os.path.basename(local_path)} (first time, not running).")
-        return
-    with open(hash_path, "r") as f:
-        old_hash = f.read().strip()
-    if new_hash != old_hash:
-        with open(local_path, "wb") as f:
-            f.write(content)
-        with open(hash_path, "w") as f:
-            f.write(new_hash)
-        print(f"{os.path.basename(local_path)} updated.")
-    else:
-        print(f"No changes in {os.path.basename(local_path)}.")
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        content = response.content
+        new_hash = file_hash(content)
+        if not os.path.exists(hash_path):
+            with open(local_path, "wb") as f:
+                f.write(content)
+            with open(hash_path, "w") as f:
+                f.write(new_hash)
+            print(f"Downloaded {os.path.basename(local_path)} (first time, not running).")
+            return
+        with open(hash_path, "r") as f:
+            old_hash = f.read().strip()
+        if new_hash != old_hash:
+            with open(local_path, "wb") as f:
+                f.write(content)
+            with open(hash_path, "w") as f:
+                f.write(new_hash)
+            print(f"{os.path.basename(local_path)} updated.")
+        else:
+            print(f"No changes in {os.path.basename(local_path)}.")
+    except Exception as e:
+        print(f"Failed to update {os.path.basename(local_path)}: {e}")
 
 def update_all_files():
     datapath = get_datapath()
