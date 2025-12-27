@@ -423,9 +423,15 @@ def install_git(progress_start=0):
 
 def install_demucs_package(progress_start=70):
     """Installs demucs and its dependencies (PyTorch)."""
-    print_progress(progress_start, "Installing PyTorch for demucs (this will take a LONG time)")
-    # Using python -m pip ensures use of the current interpreter
-    run_command('python -m pip install torch torchvision torchaudio torchcodec --index-url https://download.pytorch.org/whl/cu128', "Install PyTorch with custom index URL")
+    print_progress(progress_start, "Installing PyTorch for demucs")
+    if is_windows:
+        run_command('python -m pip install torch torchvision torchaudio torchcodec --index-url https://download.pytorch.org/whl/cu128', "Install PyTorch (Windows/CUDA)")
+    else:
+        # On Linux, default to CPU or standard PyPI to avoid architecture/driver mismatch (e.g. Steam Deck)
+        # We also skip 'torchcodec' if it's problematic, or let pip resolve it.
+        # Using CPU-only index is safest for a guaranteed runnable state without GPU setup.
+        run_command('python -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu', "Install PyTorch (Linux/CPU)")
+    
     print_progress(progress_start + 25, "Installing demucs")
     run_command('python -m pip install demucs', "pip install demucs")
     
