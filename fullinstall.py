@@ -180,6 +180,23 @@ def install_ffmpeg():
     """Checks for FFmpeg, then downloads and installs it directly if not found."""
     if is_ffmpeg_installed():
         print("-> SUCCESS: FFmpeg is already installed and in PATH. Skipping.\n")
+        
+        # Try to find the path to report it to the caller
+        found_path = shutil.which("ffmpeg")
+        if not found_path and is_windows:
+             ffmpeg_paths = [
+                r"C:\Program Files\FFmpeg\bin\ffmpeg.exe",
+                os.path.expandvars(r"C:\Users\%USERNAME%\AppData\Local\Programs\FFmpeg\bin\ffmpeg.exe")
+            ]
+             for p in ffmpeg_paths:
+                 if os.path.exists(p):
+                     found_path = p
+                     break
+        
+        if found_path:
+            # We want the directory, not the executable
+            bin_dir = os.path.dirname(os.path.abspath(found_path)) if os.path.isfile(found_path) else os.path.abspath(found_path)
+            print(f"SETUP_FFMPEG_PATH:{bin_dir}")
         return
 
     print("-> INFO: FFmpeg not found. Proceeding with installation.")
@@ -285,6 +302,9 @@ def install_ffmpeg():
              print("\n-> WARNING: FFmpeg was installed, but the 'ffmpeg' command is still not available.")
              print("   This can happen due to system delays. Please restart your terminal and try again.")
              print("   If the problem persists, please check your Environment Variables in Windows Settings.\n")
+        
+        # Report the path to Unity (or other runners)
+        print(f"SETUP_FFMPEG_PATH:{os.path.abspath(target_bin_dir)}")
 
     except (requests.exceptions.RequestException, subprocess.CalledProcessError) as e:
         print(f"ERROR: Failed during FFmpeg setup. Details: {e}")
