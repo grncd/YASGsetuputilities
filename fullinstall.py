@@ -17,8 +17,8 @@ if is_windows:
 # It will be imported dynamically after checking if it's installed.
 
 # --- Script Configuration ---
-FFMPEG_URL = "https://github.com/icedterminal/ffmpeg-installer/releases/download/7.0.0.20240429/FFmpeg_Full.msi"
-FFMPEG_FILENAME = "FFmpeg_Full.msi"
+FFMPEG_URL = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-full-shared.7z"
+FFMPEG_FILENAME = "ffmpeg-release-full-shared.7z"
 
 # --- Helper Functions ---
 
@@ -177,7 +177,7 @@ def add_ffmpeg_to_path():
 
 
 def install_ffmpeg():
-    """Checks for FFmpeg, then downloads and installs it if not found."""
+    """Checks for FFmpeg, then downloads and installs it directly if not found."""
     if is_ffmpeg_installed():
         print("-> SUCCESS: FFmpeg is already installed and in PATH. Skipping.\n")
         return
@@ -191,6 +191,8 @@ def install_ffmpeg():
         sys.exit(1)
 
     # Windows installation logic
+    
+    # Check for requests
     try:
         import requests
     except ImportError:
@@ -202,25 +204,78 @@ def install_ffmpeg():
             print("FATAL ERROR: Could not install 'requests' library, which is required to download FFmpeg.")
             print(f"Stderr: {e.stderr.decode('utf-8')}")
             sys.exit(1)
+            
+    # Check for py7zr
+    try:
+        import py7zr
+    except ImportError:
+        print("-> INFO: 'py7zr' library not found. Installing it first...")
+        try:
+            run_command("python -m pip install py7zr", "Install 'py7zr' library")
+            import py7zr
+        except subprocess.CalledProcessError as e:
+            print("FATAL ERROR: Could not install 'py7zr' library, which is required to extract FFmpeg.")
+            print(f"Stderr: {e.stderr.decode('utf-8')}")
+            sys.exit(1)
 
     temp_dir = tempfile.gettempdir()
-    installer_path = os.path.join(temp_dir, FFMPEG_FILENAME)
+    download_path = os.path.join(temp_dir, FFMPEG_FILENAME)
+    extract_path = os.path.join(temp_dir, "ffmpeg_extracted")
 
     try:
+        # 1. Download
         print_progress(10, "Downloading FFmpeg")
         print(f"-> Downloading FFmpeg from {FFMPEG_URL}...")
         with requests.get(FFMPEG_URL, stream=True) as r:
             r.raise_for_status()
-            with open(installer_path, 'wb') as f:
+            with open(download_path, 'wb') as f:
                 for chunk in r.iter_content(chunk_size=8192):
                     f.write(chunk)
         print("-> SUCCESS: Download complete.")
         
-        print_progress(20, "Installing FFmpeg (per-user, no admin required)")
-        # Use /qn ALLUSERS=2 MSIINSTALLPERUSER=1 for per-user install
-        msi_command = f'msiexec /i "{installer_path}" /qn ALLUSERS=2 MSIINSTALLPERUSER=1'
-        subprocess.run(msi_command, check=True, shell=True)
-        print("-> SUCCESS: FFmpeg installation finished.\n")
+        # 2. Extract
+        print_progress(15, "Extracting FFmpeg")
+        if os.path.exists(extract_path):
+            shutil.rmtree(extract_path)
+            
+        with py7zr.SevenZipFile(download_path, mode='r') as z:
+            z.extractall(path=extract_path)
+        print("-> SUCCESS: Extraction complete.")
+        
+        # 3. Find 'bin' folder in extracted contents
+        print_progress(20, "Installing FFmpeg files")
+        
+        ffmpeg_bin_source = None
+        for root, dirs, files in os.walk(extract_path):
+            if "bin" in dirs:
+                possible_bin = os.path.join(root, "bin")
+                # Verify it contains ffmpeg.exe
+                if os.path.exists(os.path.join(possible_bin, "ffmpeg.exe")):
+                    ffmpeg_bin_source = possible_bin
+                    break
+        
+        if not ffmpeg_bin_source:
+             print("ERROR: Could not find 'bin' folder containing ffmpeg.exe in the downloaded archive.")
+             sys.exit(1)
+
+        # 4. Move files to target location
+        target_bin_dir = os.path.join(
+            os.environ["USERPROFILE"],
+            "AppData", "Local", "Programs", "FFmpeg", "bin"
+        )
+        
+        # Create target directory if it doesn't exist
+        os.makedirs(target_bin_dir, exist_ok=True)
+        
+        # Move files
+        for filename in os.listdir(ffmpeg_bin_source):
+            src_file = os.path.join(ffmpeg_bin_source, filename)
+            dst_file = os.path.join(target_bin_dir, filename)
+            if os.path.isfile(src_file):
+                shutil.copy2(src_file, dst_file)
+        
+        print(f"-> SUCCESS: FFmpeg installed to {target_bin_dir}")
+        
         
         print_progress(25, "Adding FFmpeg to PATH")
         add_ffmpeg_to_path()
@@ -234,9 +289,19 @@ def install_ffmpeg():
     except (requests.exceptions.RequestException, subprocess.CalledProcessError) as e:
         print(f"ERROR: Failed during FFmpeg setup. Details: {e}")
         sys.exit(1)
+    except Exception as e:
+        print(f"ERROR: An unexpected error occurred: {e}")
+        sys.exit(1)
     finally:
-        if os.path.exists(installer_path):
-            os.remove(installer_path)
+        # Cleanup
+        if os.path.exists(download_path):
+            try:
+                os.remove(download_path)
+            except: pass
+        if os.path.exists(extract_path):
+            try:
+                shutil.rmtree(extract_path)
+            except: pass
 
 
 def install_windows_appruntime():
