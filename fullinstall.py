@@ -425,7 +425,8 @@ def install_demucs_package(progress_start=70):
     """Installs demucs and its dependencies (PyTorch)."""
     print_progress(progress_start, "Installing PyTorch for demucs")
     if is_windows:
-        run_command('python -m pip install torch torchvision torchaudio torchcodec --index-url https://download.pytorch.org/whl/cu128', "Install PyTorch (Windows/CUDA)")
+        run_command('python -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128', "Install PyTorch (Windows/CUDA)")
+        run_command('python -m pip install torchcodec', "Install PyTorch (Windows/CUDA)")
     else:
         # On Linux, use standard PyPI which typically includes CUDA support.
         # User requested CUDA compatible build.
