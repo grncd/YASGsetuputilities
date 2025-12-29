@@ -204,23 +204,40 @@ def install_ffmpeg():
             print("FATAL ERROR: Could not install 'requests' library, which is required to download FFmpeg.")
             print(f"Stderr: {e.stderr.decode('utf-8')}")
             sys.exit(1)
-            
-    # Check for py7zr
-    try:
-        import py7zr
-    except ImportError:
-        print("-> INFO: 'py7zr' library not found. Installing it first...")
-        try:
-            run_command("python -m pip install py7zr", "Install 'py7zr' library")
-            import py7zr
-        except subprocess.CalledProcessError as e:
-            print("FATAL ERROR: Could not install 'py7zr' library, which is required to extract FFmpeg.")
-            print(f"Stderr: {e.stderr.decode('utf-8')}")
-            sys.exit(1)
 
     temp_dir = tempfile.gettempdir()
     download_path = os.path.join(temp_dir, FFMPEG_FILENAME)
     extract_path = os.path.join(temp_dir, "ffmpeg_extracted")
+    
+    # Find or download 7-Zip for extraction (py7zr doesn't support BCJ2 filter)
+    seven_zip_exe = None
+    common_7z_paths = [
+        r"C:\Program Files\7-Zip\7z.exe",
+        r"C:\Program Files (x86)\7-Zip\7z.exe",
+        os.path.join(temp_dir, "7za.exe")
+    ]
+    
+    for path in common_7z_paths:
+        if os.path.exists(path):
+            seven_zip_exe = path
+            break
+    
+    # If 7-Zip not found, download portable version
+    if not seven_zip_exe:
+        print("-> INFO: 7-Zip not found. Downloading portable version...")
+        try:
+            seven_zip_url = "https://www.7-zip.org/a/7zr.exe"
+            seven_zip_path = os.path.join(temp_dir, "7zr.exe")
+            with requests.get(seven_zip_url, stream=True) as r:
+                r.raise_for_status()
+                with open(seven_zip_path, 'wb') as f:
+                    for chunk in r.iter_content(chunk_size=8192):
+                        f.write(chunk)
+            seven_zip_exe = seven_zip_path
+            print("-> SUCCESS: 7-Zip portable downloaded.")
+        except Exception as e:
+            print(f"FATAL ERROR: Could not download 7-Zip portable: {e}")
+            sys.exit(1)
 
     try:
         # 1. Download
@@ -233,13 +250,23 @@ def install_ffmpeg():
                     f.write(chunk)
         print("-> SUCCESS: Download complete.")
         
-        # 2. Extract
+        # 2. Extract using 7-Zip command line (supports BCJ2 filter)
         print_progress(15, "Extracting FFmpeg")
         if os.path.exists(extract_path):
             shutil.rmtree(extract_path)
+        
+        os.makedirs(extract_path, exist_ok=True)
+        
+        extract_result = subprocess.run(
+            [seven_zip_exe, "x", download_path, f"-o{extract_path}", "-y"],
+            capture_output=True,
+            text=True
+        )
+        
+        if extract_result.returncode != 0:
+            print(f"ERROR: 7-Zip extraction failed: {extract_result.stderr}")
+            sys.exit(1)
             
-        with py7zr.SevenZipFile(download_path, mode='r') as z:
-            z.extractall(path=extract_path)
         print("-> SUCCESS: Extraction complete.")
         
         # 3. Find 'bin' folder in extracted contents
