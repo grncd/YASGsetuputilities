@@ -827,6 +827,11 @@ def run_spotifydc():
             if create_response.status_code != 200 and create_response.status_code != 201:
                 print(f"ERROR: Failed to create application after retry. Status code: {create_response.status_code}", flush=True)
                 print(f"Response Headers: {dict(create_response.headers)}", flush=True)
+
+                if create_response.status_code == 403:
+                    print("ERROR: 403 Forbidden encountered during application creation. Stopping process.", flush=True)
+                    sys.exit(1)
+
                 return "restart"
 
         # Update CSRF token from response for next request
