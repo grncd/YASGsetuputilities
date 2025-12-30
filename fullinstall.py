@@ -435,115 +435,78 @@ def show_linux_error_popup(title, message):
     
     print(f"!!! [{title}] {message} !!!")
 
-def is_git_installed():
-    """Checks if git is available in the system's PATH."""
-    return shutil.which("git") is not None
-
 def install_git(progress_start=0):
-    """Installs Git using winget if not already installed, handles winget installation if needed."""
+    """Installs Git using winget, or falls back to direct download/install."""
     if is_git_installed():
-        print("-> SUCCESS: Git is already installed. Skipping.\n")
+        print("-> SUCCESS: Git is already installed. Skipping.\n", flush=True)
         return
 
     print_progress(progress_start, "Installing git")
     
     if not is_windows:
          msg = "Git is not installed.\nPlease install Git using your package manager.\nExample: sudo apt install git\nOr: sudo pacman -S git"
-         print(f"-> ERROR: {msg}")
+         print(f"-> ERROR: {msg}", flush=True)
          show_linux_error_popup("Missing Dependency: Git", msg)
          sys.exit(1)
 
-    print("-> Installing git (be patient, an admin popup might appear)")
+    print("-> Installing git (be patient, an admin popup might appear)", flush=True)
+    
+    # 1. Try Winget
     try:
-        # Run the winget command to install Git
+        print("-> Attempting installation via Winget...", flush=True)
+        # Added --accept-package-agreements and --accept-source-agreements to avoid interactive prompts
         result = subprocess.run(
-            ["winget", "install", "--id", "Git.Git", "-e", "--source", "winget"],
+            ["winget", "install", "--id", "Git.Git", "-e", "--source", "winget", 
+             "--accept-package-agreements", "--accept-source-agreements"],
             check=True, 
             text=True, 
             capture_output=True
         )
+        print("-> SUCCESS: Git installation via Winget finished.\n", flush=True)
+        return
+
+    except (subprocess.CalledProcessError, FileNotFoundError) as e:
+        print(f"-> WARNING: Winget installation failed. Reason: {e}", flush=True)
+        if hasattr(e, 'stderr') and e.stderr:
+            print(f"   Winget Stderr: {e.stderr}", flush=True)
+
+    # 2. Fallback: Direct Download & Install
+    print("-> INFO: Falling back to direct Git installer download...", flush=True)
+    
+    git_installer_url = "https://github.com/git-for-windows/git/releases/download/v2.47.1.windows.1/Git-2.47.1-64-bit.exe"
+    temp_dir = tempfile.gettempdir()
+    installer_path = os.path.join(temp_dir, "git-installer.exe")
+
+    try:
+        # Check for requests again (should be installed by install_ffmpeg logic checking, but safety first)
+        import requests
         
-        # If installation succeeds
-        print("-> SUCCESS: Git installation finished.\n")
-        print("Winget Output:", result.stdout)
+        print(f"-> Downloading Git installer from {git_installer_url}...", flush=True)
+        with requests.get(git_installer_url, stream=True) as r:
+            r.raise_for_status()
+            with open(installer_path, 'wb') as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    f.write(chunk)
+        print("-> SUCCESS: Git installer downloaded.", flush=True)
 
-    except subprocess.CalledProcessError as e:
-        print("ERROR: Failed to install Git using winget.")
+        print("-> Running Git installer silently...", flush=True)
+        # /VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS
+        # We use /VERYSILENT to show no UI.
+        subprocess.run(
+            [installer_path, "/VERYSILENT", "/NORESTART", "/NOCANCEL", "/SP-", "/CLOSEAPPLICATIONS", "/RESTARTAPPLICATIONS"],
+            check=True
+        )
+        print("-> SUCCESS: Git direct installation finished.\n", flush=True)
         
-        # If the error is related to missing 'Microsoft.WindowsAppRuntime', install it
-        if "0x80073CF3" in e.stderr:
-            print("ERROR: Dependency 'Microsoft.WindowsAppRuntime' is missing. Attempting to install it...")
-            if install_windows_appruntime():
-                # Retry Git installation after dependency is installed
-                print("Retrying Git installation...")
-                try:
-                    result = subprocess.run(
-                        ["winget", "install", "--id", "Git.Git", "-e", "--source", "winget"],
-                        check=True,
-                        text=True,
-                        capture_output=True
-                    )
-                    print("-> SUCCESS: Git installation finished after installing the runtime.\n")
-                    print("Winget Output:", result.stdout)
-                except subprocess.CalledProcessError as retry_err:
-                    print("ERROR: Failed to install Git after installing the dependency.")
-                    print("Retry Error:", retry_err.stderr)
-                    sys.exit(1)
-            else:
-                print("ERROR: Failed to install the required dependency. Git installation cannot proceed.")
-                sys.exit(1)
-
-        # Handle other common installation errors
-        elif 'winget' not in e.stderr:
-            print("Attempting to install winget...")
-            try:
-                subprocess.run(
-                    ["powershell", "Add-AppxPackage", "https://aka.ms/getwinget"],
-                    check=True,
-                    text=True,
-                    capture_output=True
-                )
-                print("-> SUCCESS: winget installation finished.")
-                
-                # Wait a bit for winget to fully install (it may take some time)
-                print("Waiting for winget installation to complete...")
-                time.sleep(3.1)  # Adjust the wait time as needed
-
-            except subprocess.CalledProcessError as install_err:
-                print("ERROR: Failed to install winget.")
-                print("Install Error:", install_err.stderr)
-                sys.exit(1)
-            except Exception as install_ex:
-                print("Unexpected error during winget installation:", str(install_ex))
-                sys.exit(1)
-
-            # Retry Git installation after winget is installed
-            print("Retrying Git installation...")
-            try:
-                result = subprocess.run(
-                    ["winget", "install", "--id", "Git.Git", "-e", "--source", "winget"],
-                    check=True,
-                    text=True,
-                    capture_output=True
-                )
-                print("-> SUCCESS: Git installation finished after winget install.\n")
-                print("Winget Output:", result.stdout)
-            except subprocess.CalledProcessError as retry_err:
-                print("ERROR: Failed to install Git after winget installation.")
-                print("Retry Error:", retry_err.stderr)
-                sys.exit(1)
-
-        else:
-            # If 'winget' was the cause of the failure (not found)
-            print("ERROR: 'winget' not found. Please install winget manually and try again.")
-            sys.exit(1)
-
-    except FileNotFoundError:
-        print("ERROR: 'winget' not found. Please install winget (App Installer) from the Microsoft Store and try again.")
-        sys.exit(1)
     except Exception as ex:
-        print("An unexpected error occurred:", str(ex))
+        print(f"-> ERROR: Failed to install Git via direct download.", flush=True)
+        print(f"   Details: {ex}", flush=True)
         sys.exit(1)
+    finally:
+        if os.path.exists(installer_path):
+            try:
+                os.remove(installer_path)
+            except: pass
 
 
 
