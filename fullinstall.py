@@ -147,7 +147,6 @@ def add_ffmpeg_to_path():
                 winreg.SetValueEx(key, "Path", 0, reg_type, new_path)
                 print("-> SUCCESS: FFmpeg bin directory added to user PATH (registry).")
                 print(f"-> INFO: Added path: {ffmpeg_bin}")
-                print("NOTE: You may need to restart your terminal or log out/in for PATH changes to take effect.")
                 
                 # Broadcast WM_SETTINGCHANGE to notify system of environment change
                 try:
