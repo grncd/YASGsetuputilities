@@ -42,18 +42,33 @@ def is_admin():
 
 def is_ffmpeg_installed():
     """Checks if ffmpeg is available in either of the common installation paths or PATH."""
+    candidate_paths = []
+    
     if is_windows:
-        ffmpeg_paths = [
+        candidate_paths.extend([
             r"C:\Program Files\FFmpeg\bin\ffmpeg.exe",
             os.path.expandvars(r"C:\Users\%USERNAME%\AppData\Local\Programs\FFmpeg\bin\ffmpeg.exe")
-        ]
-        
-        for path in ffmpeg_paths:
-            if os.path.exists(path):
-                return True
+        ])
     
-    # Check PATH on both platforms
-    return shutil.which("ffmpeg") is not None
+    # Check PATH
+    path_from_env = shutil.which("ffmpeg")
+    if path_from_env:
+        candidate_paths.append(path_from_env)
+        
+    for path in candidate_paths:
+        if os.path.exists(path):
+            if is_windows:
+                # On Windows, strictly check for .dll files in the bin folder
+                try:
+                    bin_dir = os.path.dirname(os.path.abspath(path))
+                    if any(f.lower().endswith(".dll") for f in os.listdir(bin_dir)):
+                        return True
+                except (OSError, PermissionError):
+                    continue
+            else:
+                return True
+                
+    return False
 
 def is_git_installed():
     """Checks if git is available in the system's PATH."""
