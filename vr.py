@@ -286,7 +286,53 @@ if new_mp3_files:
     new_filepath = os.path.join(download_dir, new_filename)
 
     os.rename(downloaded_filepath, new_filepath)
-    safe_print(f"Processing track 1/1: {new_filename}")
+    safe_print(f"Processing track 1/2: {new_filename}")
+else:
+    print("Download completed, but no new .mp3 file was detected.")
+
+# --- Download instrumental (Music) track ---
+try:
+    music_button = wait.until(EC.element_to_be_clickable((
+        By.XPATH,
+        "//button[contains(@class,'white') and .//span[text()='Music']]"
+    )))
+    music_button.click()
+    print("Clicked the 'Music' download option")
+    print("Progress: 80%",flush=True)
+except Exception as e:
+    print("Could not click the 'Music' button:", e)
+
+# Take snapshot of existing files BEFORE instrumental download completes
+existing_files = set(os.listdir(download_dir))
+
+timeout = time.time() + 120
+while time.time() < timeout:
+    if not any(fname.endswith('.crdownload') for fname in os.listdir(download_dir)):
+        break
+    elapsed = 120 - (timeout - time.time())
+    percent = 80 + int(19 * (elapsed / 120))
+    print(f"Progress: {percent}%",flush=True)
+    time.sleep(3)
+
+print("Progress: 99%",flush=True)
+
+# Compare current files with snapshot to find ONLY the newly downloaded file
+current_files = set(os.listdir(download_dir))
+new_files = current_files - existing_files
+new_mp3_files = [f for f in new_files if f.lower().endswith(".mp3")]
+
+if new_mp3_files:
+    # Should only be one new file, but take the first one just in case
+    downloaded_file = new_mp3_files[0]
+    downloaded_filepath = os.path.join(download_dir, downloaded_file)
+
+    original_filename = wav_files[0]
+    base_name, ext = os.path.splitext(original_filename)
+    new_filename = f"{base_name} [no_vocals]{ext}"
+    new_filepath = os.path.join(download_dir, new_filename)
+
+    os.rename(downloaded_filepath, new_filepath)
+    safe_print(f"Processing track 2/2: {new_filename}")
 else:
     print("Download completed, but no new .mp3 file was detected.")
 
