@@ -294,7 +294,7 @@ else:
 try:
     music_button = wait.until(EC.element_to_be_clickable((
         By.XPATH,
-        "//button[contains(@class,'white') and .//span[text()='Music']]"
+        "/html/body/div/main/div[6]/div[2]/button[1]"
     )))
     music_button.click()
     print("Clicked the 'Music' download option")
