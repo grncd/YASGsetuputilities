@@ -158,7 +158,8 @@ def update_all_files():
         download_and_update_file(url, local_path)
 
 if __name__ == "__main__":
+    update_all_files()
     update_syrics()
     update_spotdl()
     maybe_run_update_script()
-    update_all_files()
+    
