@@ -256,8 +256,8 @@ try:
 except Exception as e:
     print("Could not click the 'Vocal' button:", e)
 
-# Take snapshot of existing files BEFORE download completes
-existing_files = set(os.listdir(download_dir))
+# Record timestamp before download completes
+download_start_time = time.time()
 
 timeout = time.time() + 120
 while time.time() < timeout:
@@ -270,14 +270,19 @@ while time.time() < timeout:
 
 print("Progress: 90%",flush=True)
 
-# Compare current files with snapshot to find ONLY the newly downloaded file
-current_files = set(os.listdir(download_dir))
-new_files = current_files - existing_files
-new_mp3_files = [f for f in new_files if f.lower().endswith(".mp3")]
+# Find the .mp3 file that was created after download started
+downloaded_file = None
+newest_mtime = 0
+for fname in os.listdir(download_dir):
+    if fname.lower().endswith(".mp3"):
+        fpath = os.path.join(download_dir, fname)
+        ftime = os.path.getmtime(fpath)
+        # Only consider files created after download started
+        if ftime >= download_start_time and ftime > newest_mtime:
+            newest_mtime = ftime
+            downloaded_file = fname
 
-if new_mp3_files:
-    # Should only be one new file, but take the first one just in case
-    downloaded_file = new_mp3_files[0]
+if downloaded_file:
     downloaded_filepath = os.path.join(download_dir, downloaded_file)
 
     original_filename = wav_files[0]
@@ -310,28 +315,33 @@ try:
 except Exception as e:
     print("Could not click the 'Music' button:", e)
 
-# Take snapshot of existing files BEFORE instrumental download completes
-existing_files = set(os.listdir(download_dir))
+# Record timestamp before instrumental download completes
+download_start_time = time.time()
 
 timeout = time.time() + 120
 while time.time() < timeout:
     if not any(fname.endswith('.crdownload') for fname in os.listdir(download_dir)):
         break
     elapsed = 120 - (timeout - time.time())
-    percent = 80 + int(19 * (elapsed / 120))
+    percent = 95 + int(4 * (elapsed / 120))
     print(f"Progress: {percent}%",flush=True)
     time.sleep(3)
 
 print("Progress: 99%",flush=True)
 
-# Compare current files with snapshot to find ONLY the newly downloaded file
-current_files = set(os.listdir(download_dir))
-new_files = current_files - existing_files
-new_mp3_files = [f for f in new_files if f.lower().endswith(".mp3")]
+# Find the .mp3 file that was created after download started
+downloaded_file = None
+newest_mtime = 0
+for fname in os.listdir(download_dir):
+    if fname.lower().endswith(".mp3"):
+        fpath = os.path.join(download_dir, fname)
+        ftime = os.path.getmtime(fpath)
+        # Only consider files created after download started
+        if ftime >= download_start_time and ftime > newest_mtime:
+            newest_mtime = ftime
+            downloaded_file = fname
 
-if new_mp3_files:
-    # Should only be one new file, but take the first one just in case
-    downloaded_file = new_mp3_files[0]
+if downloaded_file:
     downloaded_filepath = os.path.join(download_dir, downloaded_file)
 
     original_filename = wav_files[0]
