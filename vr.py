@@ -268,7 +268,7 @@ while time.time() < timeout:
     print(f"Progress: {percent}%",flush=True)
     time.sleep(3)
 
-print("Progress: 99%",flush=True)
+print("Progress: 90%",flush=True)
 
 # Compare current files with snapshot to find ONLY the newly downloaded file
 current_files = set(os.listdir(download_dir))
@@ -292,13 +292,21 @@ else:
 
 # --- Download instrumental (Music) track ---
 try:
+    save_button = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Save')]")))
+    save_button.click()
+    print("Clicked the 'Save' button")
+except Exception as e:
+    print("Could not click the 'Save' button:", e)
+time.sleep(0.5)
+
+try:
     music_button = wait.until(EC.element_to_be_clickable((
         By.XPATH,
         "/html/body/div/main/div[6]/div[2]/button[1]"
     )))
     music_button.click()
     print("Clicked the 'Music' download option")
-    print("Progress: 80%",flush=True)
+    print("Progress: 95%",flush=True)
 except Exception as e:
     print("Could not click the 'Music' button:", e)
 
