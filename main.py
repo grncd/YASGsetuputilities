@@ -39,7 +39,8 @@ def patched_which(cmd, mode=os.F_OK | os.X_OK, path=None):
         return os.path.join(abs_ffmpeg_dir, "ffmpeg.exe")
     return original_which(cmd, mode, path)
 
-shutil.which = patched_which
+if sys.platform == "win32":
+    shutil.which = patched_which
 
 if sys.platform == "win32" and hasattr(os, "add_dll_directory"):
     if os.path.exists(abs_ffmpeg_dir):
@@ -281,7 +282,10 @@ def main():
         failed_count = 0
         
         num_workers = os.cpu_count() or 1
-        ffmpeg_exe_path = os.path.join(abs_ffmpeg_dir, "ffmpeg.exe")
+        if sys.platform == "win32":
+            ffmpeg_exe_path = os.path.join(abs_ffmpeg_dir, "ffmpeg.exe")
+        else:
+            ffmpeg_exe_path = "ffmpeg"
         print(f"\nConverting {num_wav_files} file(s) using up to {num_workers} parallel ffmpeg process(es)...")
 
         with ThreadPoolExecutor(max_workers=num_workers) as executor:
