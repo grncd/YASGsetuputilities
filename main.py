@@ -86,6 +86,20 @@ def main():
     script_dir = os.path.dirname(os.path.abspath(__file__))
     input_folder = os.path.join(script_dir, "input")
 
+    # Define where the DLLs are (where you had him paste them)
+    if sys.platform == "win32":
+        venv_scripts_dir = os.path.join(parent_dir, "venv", "Scripts")
+        # Force absolute path to avoid the WinError 87 "." error
+        abs_ffmpeg_path = os.path.abspath(venv_scripts_dir)
+        
+        # Add to the current process
+        if os.path.exists(abs_ffmpeg_path):
+            os.environ["TORCHCODEC_FFMPEG_DIR"] = abs_ffmpeg_path
+            try:
+                os.add_dll_directory(abs_ffmpeg_path)
+            except Exception:
+                pass
+
     if not os.path.isdir(input_folder):
         print(f"Error: 'input' folder not found at {input_folder}")
         sys.exit(1)
@@ -118,6 +132,12 @@ def main():
         "--filename", "{track} [{stem}].{ext}"
     ]
 
+    custom_env = os.environ.copy()
+    if sys.platform == "win32":
+        # Ensure the child process knows exactly where the DLLs are
+        custom_env["TORCHCODEC_FFMPEG_DIR"] = abs_ffmpeg_path
+        custom_env["PATH"] = abs_ffmpeg_path + os.pathsep + custom_env.get("PATH", "")
+
     print(f"\nRunning command: {' '.join(demucs_command)}\n")
     demucs_succeeded = False
     try:
@@ -126,7 +146,8 @@ def main():
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
-            bufsize=1
+            bufsize=1,
+            env=custom_env
         )
         
         print("--- Demucs Processing (Ctrl+C to interrupt) ---")
