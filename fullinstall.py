@@ -46,6 +46,7 @@ def is_ffmpeg_installed():
     
     if is_windows:
         candidate_paths.extend([
+            os.path.join(os.environ["APPDATA"], "YASG", "YASG", "vocalremover", "ffmpeg_lib", "ffmpeg.exe"),
             r"C:\Program Files\FFmpeg\bin\ffmpeg.exe",
             os.path.expandvars(r"C:\Users\%USERNAME%\AppData\Local\Programs\FFmpeg\bin\ffmpeg.exe")
         ])
@@ -318,8 +319,8 @@ def install_ffmpeg():
 
         # 4. Move files to target location
         target_bin_dir = os.path.join(
-            os.environ["USERPROFILE"],
-            "AppData", "Local", "Programs", "FFmpeg", "bin"
+            os.environ["APPDATA"],
+            "YASG", "YASG", "vocalremover", "ffmpeg_lib"
         )
         
         # Create target directory if it doesn't exist
@@ -335,8 +336,9 @@ def install_ffmpeg():
         print(f"-> SUCCESS: FFmpeg installed to {target_bin_dir}")
         
         
-        print_progress(25, "Adding FFmpeg to PATH")
-        add_ffmpeg_to_path()
+        
+        # print_progress(25, "Adding FFmpeg to PATH")
+        # add_ffmpeg_to_path()
         
         # Final check
         if not is_ffmpeg_installed():

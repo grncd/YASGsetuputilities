@@ -5,16 +5,37 @@ from pathlib import Path
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(script_dir)
-venv_scripts_dir = os.path.join(parent_dir, "venv", "Scripts")
-abs_ffmpeg_dir = os.path.abspath(venv_scripts_dir)
+venv_scripts_dir = os.path.join(parent_dir, "vocalremover")
+# New location for FFMPEG libraries
+abs_ffmpeg_dir = os.path.join(venv_scripts_dir, "ffmpeg_lib")
 
+# Ensure the directory exists
+os.makedirs(abs_ffmpeg_dir, exist_ok=True)
+
+# List of FFMPEG-related files to check/move
+ffmpeg_files = [
+    "avcodec-62.dll", "avdevice-62.dll", "avfilter-11.dll", "avformat-62.dll", 
+    "avutil-60.dll", "ffmpeg.exe", "ffplay.exe", "ffprobe.exe", 
+    "swresample-6.dll", "swscale-9.dll"
+]
+
+# Self-repair: Move files from venv_scripts_dir to abs_ffmpeg_dir if found in root
+for fname in ffmpeg_files:
+    src = os.path.join(venv_scripts_dir, fname)
+    dst = os.path.join(abs_ffmpeg_dir, fname)
+    if os.path.exists(src):
+        try:
+            shutil.move(src, dst)
+            print(f"Moved {fname} to {abs_ffmpeg_dir}")
+        except Exception as e:
+            print(f"Failed to move {fname}: {e}")
 
 # This prevents TorchCodec from seeing "." and crashing with WinError 87
 original_which = shutil.which
 
 def patched_which(cmd, mode=os.F_OK | os.X_OK, path=None):
     if cmd == "ffmpeg":
-        # Force return the ABSOLUTE path to the exe
+        # Force return the ABSOLUTE path to the exe in the lib folder
         return os.path.join(abs_ffmpeg_dir, "ffmpeg.exe")
     return original_which(cmd, mode, path)
 
@@ -24,8 +45,8 @@ if sys.platform == "win32" and hasattr(os, "add_dll_directory"):
     if os.path.exists(abs_ffmpeg_dir):
         try:
             os.add_dll_directory(abs_ffmpeg_dir)
-        except Exception:
-            pass
+        except Exception as e:
+             print(f"Warning: Failed to add dll directory: {e}")
 
 import subprocess
 import glob
@@ -144,16 +165,22 @@ def main():
         "-o", output_directory,
         "--filename", "{track} [{stem}].{ext}"
     ]
+    # Prepare the environment for the subprocess
+    custom_env = os.environ.copy()
+    if sys.platform == "win32":
+        # Force absolute path so TorchCodec doesn't guess
+        custom_env["TORCHCODEC_FFMPEG_DIR"] = abs_ffmpeg_dir
+        # Put it at the front of PATH so 'ffmpeg' is found here first
+        custom_env["PATH"] = abs_ffmpeg_dir + os.pathsep + custom_env.get("PATH", "")
 
-    print(f"\nRunning command: {' '.join(demucs_command)}\n")
-    demucs_succeeded = False
     try:
         process = subprocess.Popen(
             demucs_command,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
-            bufsize=1
+            bufsize=1,
+            env=custom_env 
         )
         
         print("--- Demucs Processing (Ctrl+C to interrupt) ---")
@@ -254,11 +281,12 @@ def main():
         failed_count = 0
         
         num_workers = os.cpu_count() or 1
+        ffmpeg_exe_path = os.path.join(abs_ffmpeg_dir, "ffmpeg.exe")
         print(f"\nConverting {num_wav_files} file(s) using up to {num_workers} parallel ffmpeg process(es)...")
 
         with ThreadPoolExecutor(max_workers=num_workers) as executor:
             future_to_task = {
-                executor.submit(convert_wav_to_mp3, task["wav_path"], task["mp3_path"]): task
+                executor.submit(convert_wav_to_mp3, task["wav_path"], task["mp3_path"], ffmpeg_path=ffmpeg_exe_path): task
                 for task in tasks
             }
 
