@@ -1,5 +1,32 @@
 import os
 import sys
+import shutil
+from pathlib import Path
+
+script_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(script_dir)
+venv_scripts_dir = os.path.join(parent_dir, "venv", "Scripts")
+abs_ffmpeg_dir = os.path.abspath(venv_scripts_dir)
+
+
+# This prevents TorchCodec from seeing "." and crashing with WinError 87
+original_which = shutil.which
+
+def patched_which(cmd, mode=os.F_OK | os.X_OK, path=None):
+    if cmd == "ffmpeg":
+        # Force return the ABSOLUTE path to the exe
+        return os.path.join(abs_ffmpeg_dir, "ffmpeg.exe")
+    return original_which(cmd, mode, path)
+
+shutil.which = patched_which
+
+if sys.platform == "win32" and hasattr(os, "add_dll_directory"):
+    if os.path.exists(abs_ffmpeg_dir):
+        try:
+            os.add_dll_directory(abs_ffmpeg_dir)
+        except Exception:
+            pass
+
 import subprocess
 import glob
 import re # For parsing progress
