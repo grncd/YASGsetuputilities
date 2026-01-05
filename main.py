@@ -83,24 +83,22 @@ def main():
     script_dir = os.path.dirname(os.path.abspath(__file__))
     parent_dir = os.path.dirname(script_dir)
     output_directory = os.path.join(parent_dir, "output")
+    script_dir = os.path.dirname(os.path.abspath(__file__))
     input_folder = os.path.join(script_dir, "input")
 
+    # Define where the DLLs are (where you had him paste them)
     if sys.platform == "win32":
-        # 1. Get the absolute path to the venv Scripts (where the DLLs are)
         venv_scripts_dir = os.path.join(parent_dir, "venv", "Scripts")
-        abs_dll_path = os.path.abspath(venv_scripts_dir)
+        # Force absolute path to avoid the WinError 87 "." error
+        abs_ffmpeg_path = os.path.abspath(venv_scripts_dir)
         
-        # 2. Force it into the environment NOW
-        os.environ["TORCHCODEC_FFMPEG_DIR"] = abs_dll_path
-        
-        # 3. Add it to the current process DLL search
-        if os.path.exists(abs_dll_path):
+        # Add to the current process
+        if os.path.exists(abs_ffmpeg_path):
+            os.environ["TORCHCODEC_FFMPEG_DIR"] = abs_ffmpeg_path
             try:
-                os.add_dll_directory(abs_dll_path)
-            except:
+                os.add_dll_directory(abs_ffmpeg_path)
+            except Exception:
                 pass
-        
-        print(f"DEBUG: Forcing FFmpeg DLL Path to: {abs_dll_path}")
 
     if not os.path.isdir(input_folder):
         print(f"Error: 'input' folder not found at {input_folder}")
@@ -111,11 +109,20 @@ def main():
         print(f"Error: No .mp3 file found in the '{input_folder}' directory.")
         sys.exit(1)
 
-    # Path to demucs
+    print(f"Found input MP3: {input_mp3_file}")
+    print(f"Output directory: {output_directory}")
+
+    # Use demucs from venv
     if sys.platform == "win32":
         demucs_exe_path = os.path.join(parent_dir, "venv", "Scripts", "demucs.exe")
     else:
+        # On Linux/macOS, it's in venv/bin/demucs
         demucs_exe_path = os.path.join(parent_dir, "venv", "bin", "demucs")
+
+    if not os.path.isfile(demucs_exe_path):
+        print(f"Error: demucs executable not found at {demucs_exe_path}")
+        print("Please ensure Demucs is installed in the venv.")
+        sys.exit(1)
 
     demucs_command = [
         demucs_exe_path,
@@ -127,10 +134,9 @@ def main():
 
     custom_env = os.environ.copy()
     if sys.platform == "win32":
-        # We RE-FORCE these in the child process environment
-        custom_env["TORCHCODEC_FFMPEG_DIR"] = abs_dll_path
-        # We put the DLL folder at the very start of the PATH
-        custom_env["PATH"] = abs_dll_path + os.pathsep + custom_env.get("PATH", "")
+        # Ensure the child process knows exactly where the DLLs are
+        custom_env["TORCHCODEC_FFMPEG_DIR"] = abs_ffmpeg_path
+        custom_env["PATH"] = abs_ffmpeg_path + os.pathsep + custom_env.get("PATH", "")
 
     print(f"\nRunning command: {' '.join(demucs_command)}\n")
     demucs_succeeded = False
@@ -141,7 +147,7 @@ def main():
             stderr=subprocess.PIPE,
             text=True,
             bufsize=1,
-            env=custom_env 
+            env=custom_env
         )
         
         print("--- Demucs Processing (Ctrl+C to interrupt) ---")
