@@ -41,35 +41,17 @@ def is_admin():
         return False
 
 def is_ffmpeg_installed():
-    """Checks if ffmpeg is available in either of the common installation paths or PATH."""
-    candidate_paths = []
-    
+    """Checks if ffmpeg is available.
+
+    On Windows: Always returns False (uses separate installation logic).
+    On Linux: Checks if ffmpeg command exists in PATH.
+    """
     if is_windows:
-        candidate_paths.extend([
-            os.path.join(os.environ["APPDATA"], "YASG", "YASG", "vocalremover", "ffmpeg_lib", "ffmpeg.exe"),
-            r"C:\Program Files\FFmpeg\bin\ffmpeg.exe",
-            os.path.expandvars(r"C:\Users\%USERNAME%\AppData\Local\Programs\FFmpeg\bin\ffmpeg.exe")
-        ])
-    
-    # Check PATH
-    path_from_env = shutil.which("ffmpeg")
-    if path_from_env:
-        candidate_paths.append(path_from_env)
-        
-    for path in candidate_paths:
-        if os.path.exists(path):
-            if is_windows:
-                # On Windows, strictly check for .dll files in the bin folder
-                try:
-                    bin_dir = os.path.dirname(os.path.abspath(path))
-                    if any(f.lower().endswith(".dll") for f in os.listdir(bin_dir)):
-                        return True
-                except (OSError, PermissionError):
-                    continue
-            else:
-                return True
-                
-    return False
+        # Windows uses separate installation logic that can't reuse existing installations
+        return False
+
+    # Linux: just check if the command exists
+    return shutil.which("ffmpeg") is not None
 
 def is_git_installed():
     """Checks if git is available in the system's PATH."""
@@ -83,6 +65,92 @@ def is_git_installed():
         return True
     except (FileNotFoundError, subprocess.CalledProcessError):
         return False
+
+def is_vc_redist_installed():
+    """Checks if Visual C++ Redistributable 2015-2022 is installed (Windows only)."""
+    if not is_windows:
+        return True  # Not relevant on Linux
+
+    # Check both x86 and x64 registry keys
+    registry_paths = [
+        r"SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64",
+        r"SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x86",
+    ]
+
+    for reg_path in registry_paths:
+        try:
+            with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, reg_path) as key:
+                # If we can open the key, VC Redist is installed
+                return True
+        except FileNotFoundError:
+            continue
+        except Exception:
+            continue
+
+    return False
+
+def install_vc_redist():
+    """Downloads and installs Visual C++ Redistributable silently (Windows only)."""
+    if not is_windows:
+        return True
+
+    if is_vc_redist_installed():
+        print("-> SUCCESS: Visual C++ Redistributable is already installed. Skipping.\n", flush=True)
+        return True
+
+    print("-> INFO: Visual C++ Redistributable not found. Installing...", flush=True)
+
+    try:
+        import requests
+    except ImportError:
+        print("-> INFO: 'requests' library not found. Installing it first...", flush=True)
+        try:
+            subprocess.run(
+                [sys.executable, "-m", "pip", "install", "requests"],
+                check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            )
+            import requests
+        except subprocess.CalledProcessError as e:
+            print(f"ERROR: Could not install 'requests' library. {e.stderr.decode('utf-8')}", flush=True)
+            return False
+
+    vc_redist_url = "https://aka.ms/vc14/vc_redist.x64.exe"
+    temp_dir = tempfile.gettempdir()
+    installer_path = os.path.join(temp_dir, "vc_redist.x64.exe")
+
+    try:
+        print(f"-> Downloading VC Redistributable from {vc_redist_url}...", flush=True)
+        with requests.get(vc_redist_url, stream=True) as r:
+            r.raise_for_status()
+            with open(installer_path, 'wb') as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    f.write(chunk)
+        print("-> SUCCESS: VC Redistributable downloaded.", flush=True)
+
+        print("-> Running VC Redistributable installer silently...", flush=True)
+        # /install /quiet /norestart - silent install without restart prompt
+        result = subprocess.run(
+            [installer_path, "/install", "/quiet", "/norestart"],
+            check=False  # Don't raise on non-zero, check manually
+        )
+
+        # Return codes: 0 = success, 1638 = already installed (newer version), 3010 = success but reboot required
+        if result.returncode in [0, 1638, 3010]:
+            print("-> SUCCESS: Visual C++ Redistributable installed.\n", flush=True)
+            return True
+        else:
+            print(f"-> WARNING: VC Redistributable installer returned code {result.returncode}.", flush=True)
+            return False
+
+    except Exception as ex:
+        print(f"-> ERROR: Failed to install VC Redistributable. Details: {ex}", flush=True)
+        return False
+    finally:
+        if os.path.exists(installer_path):
+            try:
+                os.remove(installer_path)
+            except:
+                pass
 
 def run_command(command, description):
     """Runs a command in the shell and checks for errors."""
@@ -444,7 +512,11 @@ def install_git(progress_start=0):
         return
 
     print_progress(progress_start, "Installing git")
-    
+
+    # On Windows, ensure VC Redistributable is installed first (Git requires it)
+    if is_windows:
+        install_vc_redist()
+
     if not is_windows:
          msg = "Git is not installed.\nPlease install Git using your package manager.\nExample: sudo apt install git\nOr: sudo pacman -S git"
          print(f"-> ERROR: {msg}", flush=True)
