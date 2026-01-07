@@ -403,17 +403,6 @@ def install_ffmpeg():
         
         print(f"-> SUCCESS: FFmpeg installed to {target_bin_dir}")
         
-        
-        
-        # print_progress(25, "Adding FFmpeg to PATH")
-        # add_ffmpeg_to_path()
-        
-        # Final check
-        if not is_ffmpeg_installed():
-             print("\n-> WARNING: FFmpeg was installed, but the 'ffmpeg' command is still not available.")
-             print("   This can happen due to system delays. Please restart your terminal and try again.")
-             print("   If the problem persists, please check your Environment Variables in Windows Settings.\n")
-        
         # Report the path to Unity (or other runners)
         print(f"SETUP_FFMPEG_PATH:{os.path.abspath(target_bin_dir)}")
 
