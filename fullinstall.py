@@ -602,7 +602,7 @@ def install_demucs_package(progress_start=70):
 def main():
     """Main function to parse arguments and run installation steps."""
     parser = argparse.ArgumentParser(
-        description="A script to set up a Python environment with FFmpeg, spotdl, syrics, and optionally demucs."
+        description="A script to set up a Python environment with FFmpeg, syrics, and optionally demucs."
     )
     parser.add_argument(
         "install_demucs", choices=['true', 'false'],
@@ -629,10 +629,7 @@ def main():
     install_git(progress_start=5)
     install_ffmpeg() # This now handles path correctly
 
-    print_progress(30, "Installing spotdl")
-    run_command("python -m pip install spotdl", "Installing spotdl")
-
-    print_progress(60, "Installing syrics")
+    print_progress(45, "Installing syrics")
     run_command("python -m pip install syrics", "pip install syrics")
 
     print_progress(65, "Installing soundfile")
