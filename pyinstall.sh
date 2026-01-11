@@ -44,10 +44,10 @@ source venv/bin/activate
 
 echo "[75%] Installing dependencies..."
 pip install --upgrade pip
-pip install selenium
+#pip install selenium
 # pip install pywin32 # Not needed on Linux
-pip install pyperclip
-pip install undetected-chromedriver
+#pip install pyperclip
+#pip install undetected-chromedriver
 pip install setuptools==68.0.0
 
 echo "[90%] Checking for Google Chrome..."

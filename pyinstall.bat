@@ -87,10 +87,10 @@ echo [95%%] Virtual environment created successfully at: %PARENT_DIR%venv
 echo [96%%] Activating virtual environment...
 call "%PARENT_DIR%venv\Scripts\activate.bat"
 echo [97%%] Installing required packages... (takes a while)
-pip install selenium
+:: pip install selenium
 pip install pywin32
-pip install pyperclip
-pip install undetected-chromedriver
+:: pip install pyperclip
+:: pip install undetected-chromedriver
 pip install setuptools==68.0.0
 
 :: Check for Google Chrome installation
