@@ -403,17 +403,6 @@ def install_ffmpeg():
         
         print(f"-> SUCCESS: FFmpeg installed to {target_bin_dir}")
         
-        
-        
-        # print_progress(25, "Adding FFmpeg to PATH")
-        # add_ffmpeg_to_path()
-        
-        # Final check
-        if not is_ffmpeg_installed():
-             print("\n-> WARNING: FFmpeg was installed, but the 'ffmpeg' command is still not available.")
-             print("   This can happen due to system delays. Please restart your terminal and try again.")
-             print("   If the problem persists, please check your Environment Variables in Windows Settings.\n")
-        
         # Report the path to Unity (or other runners)
         print(f"SETUP_FFMPEG_PATH:{os.path.abspath(target_bin_dir)}")
 
@@ -602,7 +591,7 @@ def install_demucs_package(progress_start=70):
 def main():
     """Main function to parse arguments and run installation steps."""
     parser = argparse.ArgumentParser(
-        description="A script to set up a Python environment with FFmpeg, spotdl, syrics, and optionally demucs."
+        description="A script to set up a Python environment with FFmpeg, syrics, and optionally demucs."
     )
     parser.add_argument(
         "install_demucs", choices=['true', 'false'],
@@ -629,10 +618,7 @@ def main():
     install_git(progress_start=5)
     install_ffmpeg() # This now handles path correctly
 
-    print_progress(30, "Installing spotdl")
-    run_command("python -m pip install spotdl", "Installing spotdl")
-
-    print_progress(60, "Installing syrics")
+    print_progress(45, "Installing syrics")
     run_command("python -m pip install syrics", "pip install syrics")
 
     print_progress(65, "Installing soundfile")
