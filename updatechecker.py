@@ -20,19 +20,6 @@ UPDATE_URL = "https://raw.githubusercontent.com/grncd/YASGsetuputilities/refs/he
 LOCAL_UPDATE_PATH = os.path.join(base_path, "syrics_update", "update.py")
 LOCAL_HASH_PATH = os.path.join(os.path.dirname(LOCAL_UPDATE_PATH), "update.hash")
 
-def update_syrics():
-    print("Updating syrics...")
-    subprocess.run(
-        [sys.executable, "-m", "pip", "install", "--upgrade", "syrics"],
-        check=True
-    )
-
-def update_spotdl():
-    print("Updating spotdl...")
-    subprocess.run(
-        [sys.executable, "-m", "pip", "install", "--upgrade", "spotdl"],
-        check=True
-    )
 
 def download_update_script():
     print("Downloading update.py...")
@@ -90,10 +77,6 @@ FILES_TO_UPDATE = [
         lambda datapath: os.path.join(get_setup_utilities_path(datapath), f"pyinstall{script_ext}")
     ),
     (
-        "https://raw.githubusercontent.com/grncd/YASGsetuputilities/refs/heads/main/spotifydc.py",
-        lambda datapath: os.path.join(get_setup_utilities_path(datapath), "spotifydc.py")
-    ),
-    (
         "https://raw.githubusercontent.com/grncd/YASGsetuputilities/refs/heads/main/fullinstall.py",
         lambda datapath: os.path.join(get_setup_utilities_path(datapath), "fullinstall.py")
     ),
@@ -102,20 +85,8 @@ FILES_TO_UPDATE = [
         lambda datapath: os.path.join(get_setup_utilities_path(datapath), "updatechecker.py")
     ),
     (
-        f"https://raw.githubusercontent.com/grncd/YASGsetuputilities/refs/heads/main/getlyrics{script_ext}",
-        lambda datapath: os.path.join(datapath, f"getlyrics{script_ext}")
-    ),
-    (
-        f"https://raw.githubusercontent.com/grncd/YASGsetuputilities/refs/heads/main/downloadsong{script_ext}",
-        lambda datapath: os.path.join(datapath, f"downloadsong{script_ext}")
-    ),
-    (
         "https://raw.githubusercontent.com/grncd/YASGsetuputilities/refs/heads/main/main.py",
         lambda datapath: os.path.join(datapath, "vocalremover", "main.py")
-    ),
-    (
-        "https://raw.githubusercontent.com/grncd/YASGsetuputilities/refs/heads/main/vr.py",
-        lambda datapath: os.path.join(datapath, "vocalremover", "vr.py")
     ),
 ]
 
@@ -159,7 +130,5 @@ def update_all_files():
 
 if __name__ == "__main__":
     update_all_files()
-    update_syrics()
-    update_spotdl()
     maybe_run_update_script()
     
