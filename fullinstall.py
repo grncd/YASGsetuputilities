@@ -618,9 +618,6 @@ def main():
     install_git(progress_start=5)
     install_ffmpeg() # This now handles path correctly
 
-    print_progress(45, "Installing syrics")
-    run_command("python -m pip install syrics", "pip install syrics")
-
     print_progress(65, "Installing soundfile")
     run_command("python -m pip install soundfile", "pip install soundfile")
 
