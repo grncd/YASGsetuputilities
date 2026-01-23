@@ -259,8 +259,12 @@ def add_ffmpeg_to_path():
         print("-> INFO: FFmpeg bin already in current process PATH.")
 
 
-def install_ffmpeg():
-    """Checks for FFmpeg, then downloads and installs it directly if not found."""
+def install_ffmpeg(data_path=None):
+    """Checks for FFmpeg, then downloads and installs it directly if not found.
+
+    Args:
+        data_path: Custom data path for installing FFmpeg. If None, uses default APPDATA path.
+    """
     if is_ffmpeg_installed():
         print("-> SUCCESS: FFmpeg is already installed and in PATH. Skipping.\n")
         
@@ -386,10 +390,13 @@ def install_ffmpeg():
              sys.exit(1)
 
         # 4. Move files to target location
-        target_bin_dir = os.path.join(
-            os.environ["APPDATA"],
-            "YASG", "YASG", "vocalremover", "ffmpeg_lib"
-        )
+        if data_path:
+            target_bin_dir = os.path.join(data_path, "vocalremover", "ffmpeg_lib")
+        else:
+            target_bin_dir = os.path.join(
+                os.environ["APPDATA"],
+                "YASG", "YASG", "vocalremover", "ffmpeg_lib"
+            )
         
         # Create target directory if it doesn't exist
         os.makedirs(target_bin_dir, exist_ok=True)
@@ -601,6 +608,10 @@ def main():
         "only_demucs", nargs='?', default='false',
         help="Optional: If set to 'true', ONLY demucs will be installed."
     )
+    parser.add_argument(
+        "--data-path", dest="data_path", default=None,
+        help="Custom data path for installing FFmpeg. If not provided, uses default APPDATA path."
+    )
     args = parser.parse_args()
 
     if args.only_demucs == 'true':
@@ -616,7 +627,7 @@ def main():
     print_progress(0, "Starting Environment Setup")
 
     install_git(progress_start=5)
-    install_ffmpeg() # This now handles path correctly
+    install_ffmpeg(data_path=args.data_path)
 
     print_progress(45, "Installing syrics")
     run_command("python -m pip install syrics", "pip install syrics")
